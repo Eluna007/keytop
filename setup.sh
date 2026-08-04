@@ -105,6 +105,14 @@ test_cmd() {
 install_cmd() {
     build
     cmake --install "$build_dir"
+    # A DESTDIR install is a package staging operation. It must not create
+    # configuration files in the package builder's real HOME.
+    [[ -n "${DESTDIR:-}" ]] && return 0
+    local config_dir=${KEYTOP_CONFIG_DIR:-${XDG_CONFIG_HOME:-${HOME:?}/.config}/keytop}
+    mkdir -p "$config_dir"
+    [[ -e "$config_dir/config.conf" ]] || install -m 0644 "$repo_dir/defaults/config.conf" "$config_dir/config.conf"
+    [[ -e "$config_dir/matugen.conf" ]] || install -m 0644 "$repo_dir/defaults/matugen.conf" "$config_dir/matugen.conf"
+    [[ -e "$config_dir/colors.conf" ]] || install -m 0644 "$repo_dir/defaults/colors.conf" "$config_dir/colors.conf"
 }
 
 uninstall_cmd() {

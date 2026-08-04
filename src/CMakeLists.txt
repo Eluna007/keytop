@@ -32,6 +32,8 @@ target_link_libraries(KeytopSysmon PUBLIC
 add_executable(keytop
     main.cpp
     commands/command_result.h
+    commands/reload_command.h
+    commands/reload_command.cpp
     commands/sysmon_command.h
     commands/sysmon_command.cpp
     commands/top_command.h
@@ -40,6 +42,8 @@ add_executable(keytop
     tui/top_tui_helpers.h
     tui/top_tui_helpers.cpp
     tui/top_tui.cpp
+    config/keytop_config.h
+    config/keytop_config.cpp
 )
 set_target_properties(keytop PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"

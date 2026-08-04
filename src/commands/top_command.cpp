@@ -1,5 +1,6 @@
 #include "top_command.h"
 
+#include "config/keytop_config.h"
 #include "sysmon/sampler.h"
 #include "tui/top_tui.h"
 
@@ -29,7 +30,10 @@ CommandResult usageError(const QString &message)
 
 CommandResult TopCommand::run(const QStringList &arguments) const
 {
+    const KeytopConfig config = loadKeytopConfig();
     TopTui::Options options;
+    options.refreshIntervalMs = config.updateIntervalMs;
+    options.temperatureUnit = config.temperatureUnit;
 
     for (int index = 0; index < arguments.size(); ++index) {
         const QString &argument = arguments.at(index);
@@ -129,7 +133,7 @@ QString TopCommand::helpText()
         "  keytop --help\n"
         "\n"
         "Options:\n"
-        "  --interval MS   refresh every 250..60000 ms (default: 1000)\n"
+        "  --interval MS   refresh every 250..60000 ms (overrides config.conf)\n"
         "  --ascii         force ASCII-only UI output\n"
         "  -h, --help      show this help without entering the TUI\n"
         "\n"
@@ -160,5 +164,7 @@ QString TopCommand::helpText()
         "  cursor, colors and the alternate screen on normal or signaled exit.\n"
         "  Click the header's - interval + control to adjust it with the mouse.\n"
         "  The terminal default background is preserved for transparency.\n"
+        "  Config: $XDG_CONFIG_HOME/keytop/config.conf (interval and temperature unit).\n"
+        "  Send SIGHUP to reload colors.conf without resetting sample history.\n"
         "  Set NO_COLOR to disable colors; unsupported Unicode falls back to ASCII.");
 }

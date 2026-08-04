@@ -28,6 +28,24 @@ CMAKE_INSTALL_PREFIX=/usr DESTDIR="$pkgdir" ./setup.sh install
 卸载只依据安装 manifest 删除本仓库安装的文件。RAPL helper 是可选的独立系统集成，
 不会由普通构建或 Shell 安装隐式启用。
 
+## 配置和 Matugen 配色
+
+用户配置目录为 `${XDG_CONFIG_HOME:-$HOME/.config}/keytop/`。普通配置只有两个键：
+
+```ini
+[general]
+update_interval_ms=1000
+temperature_unit=celsius
+```
+
+刷新间隔限制为 250–60000 毫秒；命令行 `--interval` 优先于配置。温度还可以显示为
+`fahrenheit`，但 `keytop value` 的机器输出始终保留摄氏固定单位和原有 schema。
+
+同目录的 `matugen.conf` 是输入模板，`colors.conf` 是动态配色结果。内置颜色是最后
+fallback，损坏的单个颜色不会使整个 TUI 失效。运行中的 TUI 收到 `SIGHUP` 后只重新
+读取颜色，不会停止采样或清空历史曲线；一次性执行 `keytop reload` 会准确通知正在
+运行的 Keytop TUI，不会启动 daemon。
+
 ## 与 Clavis Shell 的关系
 
 Shell 的系统页直接运行稳定的 `keytop stream --format jsonl`，不经过 `key`。为了
@@ -36,9 +54,9 @@ daemon，也不提供常驻 socket 服务。
 
 ## 用户状态和未来 AUR
 
-keytop 本身不写用户配置；运行时只读取 Linux `/proc`、`/sys`、系统设备和可选 RAPL
-socket。CMake 标准安装变量、`DESTDIR` 和 manifest 适合未来 `package()` 阶段安装到
-`/usr`，AUR 包应把 `ncurses`、Qt6 Core/Network 和可选 RAPL 集成声明为依赖。
+Keytop 首次显式安装时只补齐缺失的三个配置示例，不覆盖已有用户文件；运行时读取
+Linux `/proc`、`/sys`、系统设备和可选 RAPL socket。CMake 标准安装变量、`DESTDIR` 和
+manifest 适合未来 `package()` 阶段安装到 `/usr`，AUR 包应把 `ncurses`、Qt6 Core/Network
+和可选 RAPL 集成声明为依赖。
 
 详细协议见 [docs/protocol.md](docs/protocol.md)。
-

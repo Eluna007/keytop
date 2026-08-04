@@ -1,16 +1,12 @@
 #include "top_tui.h"
-#include "runtime/clavis_paths.h"
+#include "config/keytop_config.h"
 #include "top_tui_helpers.h"
 
 #include "sysmon/sampler.h"
 #include "sysmon/types.h"
 
 #include <QDateTime>
-#include <QDir>
-#include <QFile>
 #include <QHash>
-#include <QJsonDocument>
-#include <QJsonObject>
 #include <QSet>
 
 #define NCURSES_NOMACROS 1
@@ -45,6 +41,7 @@ using Clock = std::chrono::steady_clock;
 
 volatile sig_atomic_t g_stopRequested = 0;
 volatile sig_atomic_t g_resizeRequested = 0;
+volatile sig_atomic_t g_reloadRequested = 0;
 
 extern "C" void stopHandler(int)
 {
@@ -56,13 +53,18 @@ extern "C" void resizeHandler(int)
     g_resizeRequested = 1;
 }
 
+extern "C" void reloadHandler(int)
+{
+    g_reloadRequested = 1;
+}
+
 class SignalGuard {
 public:
     SignalGuard()
     {
         install(SIGINT, stopHandler);
         install(SIGTERM, stopHandler);
-        install(SIGHUP, stopHandler);
+        install(SIGHUP, reloadHandler);
         install(SIGWINCH, resizeHandler);
     }
 
@@ -163,9 +165,8 @@ struct Rgb {
     int blue = 255;
 };
 
-std::optional<Rgb> parseRgb(const QJsonObject &object, const QString &key)
+std::optional<Rgb> parseRgb(const QString &value)
 {
-    const QString value = object.value(key).toString();
     if (value.size() != 7 || !value.startsWith(QLatin1Char('#')))
         return std::nullopt;
 
@@ -259,6 +260,13 @@ public:
         return m_colorEnabled;
     }
 
+    void reload()
+    {
+        restoreCustomColors();
+        m_colorEnabled = false;
+        initialize();
+    }
+
 private:
     struct SavedColor {
         short index = 0;
@@ -267,9 +275,9 @@ private:
         short blue = 0;
     };
 
-    static Rgb role(const QJsonObject &tokens, const QString &key, const Rgb &fallback)
+    static Rgb role(const QString &value, const Rgb &fallback)
     {
-        return parseRgb(tokens, key).value_or(fallback);
+        return parseRgb(value).value_or(fallback);
     }
 
     void initialize()
@@ -282,33 +290,17 @@ private:
             ::use_default_colors() == OK ? -1 : COLOR_BLACK;
         m_colorEnabled = true;
 
-        QJsonObject tokens;
-        QFile file(
-            Clavis::Runtime::ClavisPaths::fromEnvironment().generatedHome()
-            + QStringLiteral("/clavis/colors.json"));
-        if (file.open(QIODevice::ReadOnly)) {
-            QJsonParseError error;
-            const QJsonDocument document =
-                QJsonDocument::fromJson(file.readAll(), &error);
-            if (error.error == QJsonParseError::NoError && document.isObject())
-                tokens = document.object();
-        }
-
-        const Rgb surface = role(tokens, QStringLiteral("surface"), {16, 20, 19});
-        const Rgb onSurface =
-            role(tokens, QStringLiteral("on_surface"), {231, 235, 233});
-        const Rgb primary = role(tokens, QStringLiteral("primary"), {92, 214, 185});
-        const Rgb muted =
-            role(tokens, QStringLiteral("on_surface_variant"), {177, 188, 184});
-        const Rgb outline =
-            role(tokens, QStringLiteral("outline_variant"), {76, 88, 84});
-        const Rgb warning = role(tokens, QStringLiteral("tertiary"), {255, 196, 92});
-        const Rgb critical = role(tokens, QStringLiteral("error"), {255, 180, 171});
-        const Rgb selectedBackground =
-            role(tokens, QStringLiteral("primary_container"), {0, 81, 68});
-        const Rgb selectedForeground =
-            role(tokens, QStringLiteral("on_primary_container"), {160, 242, 222});
-        const Rgb good = role(tokens, QStringLiteral("secondary"), {177, 204, 196});
+        const KeytopPalette palette = loadKeytopConfig().palette;
+        const Rgb surface = role(palette.surface, {16, 20, 19});
+        const Rgb onSurface = role(palette.onSurface, {231, 235, 233});
+        const Rgb primary = role(palette.primary, {92, 214, 185});
+        const Rgb muted = role(palette.muted, {177, 188, 184});
+        const Rgb outline = role(palette.outline, {76, 88, 84});
+        const Rgb warning = role(palette.warning, {255, 196, 92});
+        const Rgb critical = role(palette.critical, {255, 180, 171});
+        const Rgb selectedBackground = role(palette.selectedBackground, {0, 81, 68});
+        const Rgb selectedForeground = role(palette.selectedForeground, {160, 242, 222});
+        const Rgb good = role(palette.good, {177, 204, 196});
 
         const bool trueColorAdvertised =
             qEnvironmentVariable("COLORTERM").contains(QStringLiteral("truecolor"),
@@ -602,6 +594,17 @@ QString optionalNumber(const OptionalNumber &number,
                   : QStringLiteral("--");
 }
 
+QString formatTemperature(const OptionalNumber &number, const QString &unit)
+{
+    if (!number)
+        return QStringLiteral("--");
+    const bool fahrenheit = unit == QStringLiteral("fahrenheit");
+    const double value = fahrenheit ? (*number * 9.0 / 5.0 + 32.0) : *number;
+    return QStringLiteral("%1°%2")
+        .arg(value, 0, 'f', 0)
+        .arg(fahrenheit ? QStringLiteral("F") : QStringLiteral("C"));
+}
+
 bool unicodeAvailable(bool forceAscii)
 {
     if (forceAscii)
@@ -663,6 +666,7 @@ struct TopTui::Impl {
     {
         g_stopRequested = 0;
         g_resizeRequested = 0;
+        g_reloadRequested = 0;
 
         CursesSession terminal;
         if (!terminal.active()) {
@@ -691,6 +695,12 @@ struct TopTui::Impl {
                 g_resizeRequested = 0;
                 terminal.resize();
                 queryTerminalSize();
+            }
+
+            if (g_reloadRequested) {
+                g_reloadRequested = 0;
+                terminalTheme.reload();
+                ::clearok(stdscr, TRUE);
             }
 
             const auto now = Clock::now();
@@ -2801,11 +2811,10 @@ void TopTui::Impl::drawCompute(const Rect &rect)
                  optionalNumber(cpu.frequencyCurrentMHz,
                                 QStringLiteral(" MHz"),
                                 0),
-                 optionalNumber(cpu.packageTemperatureCelsius
-                                    ? cpu.packageTemperatureCelsius
-                                    : cpu.temperatureCelsius,
-                                QStringLiteral("°C"),
-                                0),
+                 formatTemperature(cpu.packageTemperatureCelsius
+                                       ? cpu.packageTemperatureCelsius
+                                       : cpu.temperatureCelsius,
+                                   options.temperatureUnit),
                  cpuName);
     drawMetricRow(rect,
                   0,
@@ -2853,9 +2862,8 @@ void TopTui::Impl::drawCompute(const Rect &rect)
                     .arg(optionalNumber(summaryGpu->powerWatts,
                                         QStringLiteral(" W"),
                                         1),
-                         optionalNumber(summaryGpu->temperatureCelsius,
-                                        QStringLiteral("°C"),
-                                        0),
+                         formatTemperature(summaryGpu->temperatureCelsius,
+                                           options.temperatureUnit),
                          vram,
                          name);
             drawMetricRow(rect,

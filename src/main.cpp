@@ -1,4 +1,5 @@
 #include "commands/command_result.h"
+#include "commands/reload_command.h"
 #include "commands/sysmon_command.h"
 #include "commands/top_command.h"
 
@@ -34,6 +35,7 @@ CommandResult helpResult()
             "  keytop value system|cpu|memory|gpu|disk|network|battery [options]\n"
             "  keytop value processes [options]\n"
             "  keytop stream [options]\n"
+            "  keytop reload\n"
             "  keytop --version\n\n"
             "The default command enters the interactive TUI. Machine output uses\n"
             "the schema and units formerly exposed by `key sysmon`.")
@@ -55,6 +57,8 @@ CommandResult route(const QStringList &arguments)
         return versionResult();
     if (command == QStringLiteral("top"))
         return TopCommand().run(arguments.mid(1));
+    if (command == QStringLiteral("reload"))
+        return ReloadCommand().run(arguments.mid(1));
     if (command == QStringLiteral("value")
         || command == QStringLiteral("sysmon"))
         return SysmonCommand().run(arguments.mid(1));

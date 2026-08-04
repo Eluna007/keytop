@@ -24,4 +24,9 @@ install(FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/README.md"
     DESTINATION "${CMAKE_INSTALL_DATADIR}/keytop"
 )
-
+install(FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/defaults/config.conf"
+    "${CMAKE_CURRENT_SOURCE_DIR}/defaults/colors.conf"
+    "${CMAKE_CURRENT_SOURCE_DIR}/defaults/matugen.conf"
+    DESTINATION "${CMAKE_INSTALL_DATADIR}/keytop/defaults"
+)

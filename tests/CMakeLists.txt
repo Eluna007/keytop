@@ -26,3 +26,12 @@ target_link_libraries(keytop_rapl_helper_tests PRIVATE
 target_include_directories(keytop_rapl_helper_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../src/core")
 add_test(NAME keytop_rapl_helper_tests COMMAND keytop_rapl_helper_tests)
 
+qt_add_executable(keytop_config_tests keytop_config_test.cpp
+    "${CMAKE_CURRENT_SOURCE_DIR}/../src/config/keytop_config.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../src/config/keytop_config.h"
+)
+target_link_libraries(keytop_config_tests PRIVATE Qt6::Core Qt6::Test)
+target_include_directories(keytop_config_tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/../src"
+)
+add_test(NAME keytop_config_tests COMMAND keytop_config_tests)
