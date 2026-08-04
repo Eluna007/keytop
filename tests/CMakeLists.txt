@@ -35,3 +35,10 @@ target_include_directories(keytop_config_tests PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/../src"
 )
 add_test(NAME keytop_config_tests COMMAND keytop_config_tests)
+
+find_program(BASH_EXECUTABLE bash REQUIRED)
+add_test(
+    NAME keytop_setup_install_tests
+    COMMAND "${BASH_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/test_setup_install.sh"
+)

@@ -25,8 +25,10 @@ CMAKE_INSTALL_PREFIX=/usr DESTDIR="$pkgdir" ./setup.sh install
 ./setup.sh uninstall
 ```
 
-卸载只依据安装 manifest 删除本仓库安装的文件。RAPL helper 是可选的独立系统集成，
-不会由普通构建或 Shell 安装隐式启用。
+卸载只依据安装 manifest 删除本仓库安装的文件。执行 `sudo ./setup.sh install` 会安装并
+启用 `keytop-rapl.socket`，普通用户随后即可通过受限的只读 helper 获取 CPU 功耗；普通
+构建、非 root 安装和 `DESTDIR` 打包不会启动系统服务。非 `DESTDIR` 安装还会为调用用户
+补齐缺失的三份配置；sudo 安装通过 `SUDO_USER` 写入真实用户配置目录并设置正确所有权。
 
 ## 配置和 Matugen 配色
 
@@ -45,6 +47,10 @@ temperature_unit=celsius
 fallback，损坏的单个颜色不会使整个 TUI 失效。运行中的 TUI 收到 `SIGHUP` 后只重新
 读取颜色，不会停止采样或清空历史曲线；一次性执行 `keytop reload` 会准确通知正在
 运行的 Keytop TUI，不会启动 daemon。
+
+RAPL helper 使用 `/run/keytop/rapl.sock`，仅返回功耗采样所需的固定 JSON。可通过
+`KEYTOP_RAPL_SOCKET` 覆盖测试路径；旧 `CLAVIS_RAPL_SOCKET` 暂时兼容读取。
+不再需要 `key setup cpu-power`；该命令已从 `key-cli` 删除。
 
 ## 与 Clavis Shell 的关系
 

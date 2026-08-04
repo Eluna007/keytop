@@ -13,6 +13,14 @@ find_package(Qt6 REQUIRED COMPONENTS Core Network)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(NCURSESW IMPORTED_TARGET ncursesw REQUIRED)
 
+set(KEYTOP_SYSTEMD_UNIT_DIR "${CMAKE_INSTALL_LIBDIR}/systemd/system"
+    CACHE PATH "systemd system unit installation directory")
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/packaging/systemd/keytop-rapl.service.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/keytop-rapl.service"
+    @ONLY
+)
+
 add_subdirectory(src)
 
 if(BUILD_TESTING)
@@ -29,4 +37,9 @@ install(FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/defaults/colors.conf"
     "${CMAKE_CURRENT_SOURCE_DIR}/defaults/matugen.conf"
     DESTINATION "${CMAKE_INSTALL_DATADIR}/keytop/defaults"
+)
+install(FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/packaging/systemd/keytop-rapl.socket"
+    "${CMAKE_CURRENT_BINARY_DIR}/keytop-rapl.service"
+    DESTINATION "${KEYTOP_SYSTEMD_UNIT_DIR}"
 )

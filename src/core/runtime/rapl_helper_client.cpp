@@ -8,10 +8,14 @@ namespace Clavis::Runtime {
 
 QString RaplHelperClient::defaultSocketPath()
 {
-    const QString configured = QString::fromLocal8Bit(
-        qgetenv("CLAVIS_RAPL_SOCKET")).trimmed();
+    QString configured = QString::fromLocal8Bit(
+        qgetenv("KEYTOP_RAPL_SOCKET")).trimmed();
+    if (configured.isEmpty()) {
+        configured = QString::fromLocal8Bit(
+            qgetenv("CLAVIS_RAPL_SOCKET")).trimmed();
+    }
     return configured.isEmpty()
-        ? QStringLiteral("/run/clavis-rapl/rapl.sock")
+        ? QStringLiteral("/run/keytop/rapl.sock")
         : configured;
 }
 

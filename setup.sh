@@ -20,6 +20,8 @@ Usage:
 Environment:
   CMAKE_INSTALL_PREFIX (default /usr/local)
   DESTDIR             (honoured by cmake --install)
+  KEYTOP_SYSTEMCTL    (systemctl command override for tests)
+  KEYTOP_SKIP_SYSTEMD (set to 1 to skip activation)
 EOF
 }
 
@@ -102,23 +104,83 @@ test_cmd() {
     ctest --test-dir "$build_dir" --output-on-failure
 }
 
+install_user_defaults() {
+    [[ -z "${DESTDIR:-}" ]] || return 0
+
+    local config_dir="${KEYTOP_CONFIG_DIR:-}"
+    local user_home="${HOME:-}"
+    local xdg_config_home="${XDG_CONFIG_HOME:-}"
+    local -a owner_args=()
+    if (( EUID == 0 )); then
+        if [[ -z "${SUDO_USER:-}" || "${SUDO_USER}" == root ]]; then
+            if [[ -z "$config_dir" ]]; then
+                printf 'Skipping user Keytop config initialization (no SUDO_USER).\n'
+                return 0
+            fi
+        else
+            local passwd_entry
+            passwd_entry=$(getent passwd "$SUDO_USER") || {
+                printf 'Unable to resolve sudo user: %s\n' "$SUDO_USER" >&2
+                return 1
+            }
+            IFS=: read -r _ _ sudo_uid sudo_gid _ user_home _ <<< "$passwd_entry"
+            owner_args=(-o "$sudo_uid" -g "$sudo_gid")
+            xdg_config_home=""
+        fi
+    fi
+    [[ -n "$config_dir" ]] \
+        || config_dir="${xdg_config_home:-${user_home:?}/.config}/keytop"
+    install -d -m 0755 "${owner_args[@]}" "$config_dir"
+    local name
+    for name in config.conf matugen.conf colors.conf; do
+        [[ -e "$config_dir/$name" ]] \
+            || install -m 0644 "${owner_args[@]}" \
+                "$repo_dir/defaults/$name" "$config_dir/$name"
+    done
+    printf 'Keytop config: %s\n' "$config_dir"
+}
+
+systemctl_command() {
+    printf '%s\n' "${KEYTOP_SYSTEMCTL:-systemctl}"
+}
+
+activate_rapl_socket() {
+    [[ -z "${DESTDIR:-}" && "${KEYTOP_SKIP_SYSTEMD:-0}" != 1 ]] || return 0
+    if (( EUID != 0 )); then
+        printf 'Keytop installed without privileged RAPL access; rerun install with sudo to enable CPU power readings.\n' >&2
+        return 0
+    fi
+    local command
+    command=$(systemctl_command)
+    command -v "$command" >/dev/null 2>&1 || {
+        printf 'systemctl is required to activate keytop-rapl.socket\n' >&2
+        return 1
+    }
+    "$command" daemon-reload
+    "$command" enable --now keytop-rapl.socket
+}
+
+deactivate_rapl_socket() {
+    [[ -z "${DESTDIR:-}" && "${KEYTOP_SKIP_SYSTEMD:-0}" != 1 ]] || return 0
+    (( EUID == 0 )) || return 0
+    local command
+    command=$(systemctl_command)
+    command -v "$command" >/dev/null 2>&1 || return 0
+    "$command" disable --now keytop-rapl.socket >/dev/null 2>&1 || true
+}
+
 install_cmd() {
     build
     cmake --install "$build_dir"
-    # A DESTDIR install is a package staging operation. It must not create
-    # configuration files in the package builder's real HOME.
-    [[ -n "${DESTDIR:-}" ]] && return 0
-    local config_dir=${KEYTOP_CONFIG_DIR:-${XDG_CONFIG_HOME:-${HOME:?}/.config}/keytop}
-    mkdir -p "$config_dir"
-    [[ -e "$config_dir/config.conf" ]] || install -m 0644 "$repo_dir/defaults/config.conf" "$config_dir/config.conf"
-    [[ -e "$config_dir/matugen.conf" ]] || install -m 0644 "$repo_dir/defaults/matugen.conf" "$config_dir/matugen.conf"
-    [[ -e "$config_dir/colors.conf" ]] || install -m 0644 "$repo_dir/defaults/colors.conf" "$config_dir/colors.conf"
+    install_user_defaults
+    activate_rapl_socket
 }
 
 uninstall_cmd() {
     local manifest="$build_dir/install_manifest.txt"
     local destdir=${DESTDIR:-}
     [[ -f "$manifest" ]] || { printf 'no install manifest: %s\n' "$manifest" >&2; exit 1; }
+    deactivate_rapl_socket
     while IFS= read -r path; do
         [[ -n "$path" ]] || continue
         local target="$path"
@@ -128,6 +190,11 @@ uninstall_cmd() {
         [[ -e "$target" ]] || continue
         rm -f -- "$target"
     done < "$manifest"
+    if [[ -z "$destdir" && "${KEYTOP_SKIP_SYSTEMD:-0}" != 1 && EUID -eq 0 ]]; then
+        local command
+        command=$(systemctl_command)
+        command -v "$command" >/dev/null 2>&1 && "$command" daemon-reload
+    fi
 }
 
 case "$command_name" in
