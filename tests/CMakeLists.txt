@@ -19,13 +19,6 @@ target_compile_definitions(keytop_integration_tests PRIVATE
 add_dependencies(keytop_integration_tests keytop)
 add_test(NAME keytop_integration_tests COMMAND keytop_integration_tests)
 
-qt_add_executable(keytop_rapl_helper_tests rapl_helper_client_test.cpp)
-target_link_libraries(keytop_rapl_helper_tests PRIVATE
-    KeytopRuntime Qt6::Core Qt6::Network Qt6::Test
-)
-target_include_directories(keytop_rapl_helper_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../src/core")
-add_test(NAME keytop_rapl_helper_tests COMMAND keytop_rapl_helper_tests)
-
 qt_add_executable(keytop_config_tests keytop_config_test.cpp
     "${CMAKE_CURRENT_SOURCE_DIR}/../src/config/keytop_config.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/../src/config/keytop_config.h"
@@ -34,11 +27,15 @@ target_link_libraries(keytop_config_tests PRIVATE Qt6::Core Qt6::Test)
 target_include_directories(keytop_config_tests PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/../src"
 )
+target_compile_definitions(keytop_config_tests PRIVATE
+    KEYTOP_DEFAULTS_INSTALL_DIR="${KEYTOP_DEFAULTS_INSTALL_DIR}"
+    KEYTOP_BUILD_DEFAULTS_DIR="${KEYTOP_BUILD_DEFAULTS_DIR}"
+)
 add_test(NAME keytop_config_tests COMMAND keytop_config_tests)
 
 find_program(BASH_EXECUTABLE bash REQUIRED)
 add_test(
-    NAME keytop_setup_install_tests
+    NAME keytop_make_install_tests
     COMMAND "${BASH_EXECUTABLE}"
-            "${CMAKE_CURRENT_SOURCE_DIR}/test_setup_install.sh"
+            "${CMAKE_CURRENT_SOURCE_DIR}/test_make_install.sh"
 )

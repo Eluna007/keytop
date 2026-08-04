@@ -1,38 +1,123 @@
 # keytop
 
-`keytop` 是独立的终端系统监测程序。它拥有采样核心、TUI、机器可读输出和可选
-Intel RAPL helper，不依赖 `key-cli` 或 Clavis Shell。
+`keytop` 是独立的终端系统监测程序，提供交互式 TUI、机器可读输出和 CPU、内存、网络、
+磁盘、进程、温度、GPU 以及可选 RAPL 功耗数据。主程序直接读取 Linux 的监测接口；不依赖
+systemd 服务、Unix socket 或特权 helper。
 
-职责：CPU、内存、Swap、网络、磁盘、进程、温度、GPU 和 RAPL 数据；TUI 与 JSON/JSONL
-接口共用同一套 sampler。直接执行 `keytop` 默认进入 TUI；`keytop value` 保留原
-`key sysmon` 的机器接口语义，`keytop stream` 输出 JSONL。
-
-## 构建和运行
+## 源码安装
 
 ```bash
-./setup.sh doctor
-./setup.sh configure
-./setup.sh build
-./setup.sh test
-./setup.sh run
+git clone <repository-url>
+cd keytop
+make
+sudo make install
+sudo make setcap
 ```
 
-源码构建不安装依赖、不使用 sudo。默认源码安装前缀为 `/usr/local`，可使用
-`CMAKE_INSTALL_PREFIX=/usr` 和 `DESTDIR="$pkgdir"` 进行打包：
+默认前缀是 `/usr/local`，因此程序和共享资源分别安装到：
+
+```text
+/usr/local/bin/keytop
+/usr/local/share/keytop/
+```
+
+`make setcap` 会对已安装的主程序设置：
+
+```text
+cap_perfmon=+ep cap_dac_read_search=+ep
+```
+
+这些 capability 让普通用户在系统允许的情况下读取受限的性能和系统监测接口。没有执行
+`setcap` 时 keytop 仍然可以正常启动；不可读取的指标显示为不可用，不需要以 root 身份运行
+整个 TUI。`setcap` 是独立步骤，不会由 `make install` 自动执行，也不支持在设置了 `DESTDIR`
+时操作暂存文件。
+
+构建需要 CMake、C++17 编译器、Qt6 Core、`pkg-config` 和 `ncursesw`；`setcap/getcap`
+来自系统的 libcap 工具包。
+
+## 用户级安装
 
 ```bash
-CMAKE_INSTALL_PREFIX=/usr DESTDIR="$pkgdir" ./setup.sh install
-./setup.sh uninstall
+make
+make PREFIX="$HOME/.local" install
 ```
 
-卸载只依据安装 manifest 删除本仓库安装的文件。执行 `sudo ./setup.sh install` 会安装并
-启用 `keytop-rapl.socket`，普通用户随后即可通过受限的只读 helper 获取 CPU 功耗；普通
-构建、非 root 安装和 `DESTDIR` 打包不会启动系统服务。非 `DESTDIR` 安装还会为调用用户
-补齐缺失的三份配置；sudo 安装通过 `SUDO_USER` 写入真实用户配置目录并设置正确所有权。
+用户目录中的文件 capability 通常无法可靠保留或使用，因此受限指标可能不可用。不要假定
+用户级安装后一定可以执行 `make PREFIX="$HOME/.local" setcap`。
 
-## 配置和 Matugen 配色
+## 自定义前缀
 
-用户配置目录为 `${XDG_CONFIG_HOME:-$HOME/.config}/keytop/`。普通配置只有两个键：
+```bash
+sudo make PREFIX=/opt/keytop install
+sudo make PREFIX=/opt/keytop setcap
+```
+
+`PREFIX` 和 `DESTDIR` 始终组合为 `DESTDIR + PREFIX + 相对安装路径`。例如 Arch/AUR 的
+`package()` 阶段使用：
+
+```bash
+make PREFIX=/usr DESTDIR="$pkgdir" install
+```
+
+结果应为 `$pkgdir/usr/bin/keytop` 和 `$pkgdir/usr/share/keytop/`。安装阶段只部署程序、
+README 和 `defaults/` 共享模板，不会：
+
+- 写入用户配置目录；
+- 启动或启用 systemd；
+- 执行 `setcap`；
+- 运行 keytop 或修改当前用户的运行环境。
+
+包管理器安装的版本应由包管理器卸载，例如：
+
+```bash
+sudo pacman -Rns keytop
+```
+
+不要用源码 Makefile 卸载 pacman/AUR 安装的版本。
+
+源码安装会直接写入 `PREFIX`，并可由管理员在安装后单独授予 capability。AUR/pacman 的
+`package()` 只使用 `PREFIX=/usr DESTDIR="$pkgdir" install` 收集文件，不执行 capability
+设置；文件删除、权限和升级由包管理器负责。
+
+## 卸载
+
+源码安装使用：
+
+```bash
+sudo make uninstall
+```
+
+自定义前缀使用同一个前缀：
+
+```bash
+sudo make PREFIX=/opt/keytop uninstall
+```
+
+卸载按当前 `PREFIX` 和 `DESTDIR` 直接删除已知的 keytop 二进制和专属共享目录，不依赖构建
+目录中的 CMake 安装记录或服务状态。它会保留所有用户配置。
+
+## 配置初始化
+
+用户配置目录按以下优先级确定：
+
+```text
+KEYTOP_CONFIG_DIR
+→ ${XDG_CONFIG_HOME}/keytop
+→ ${HOME}/.config/keytop
+```
+
+第一次进入 keytop TUI 时，程序以当前用户身份创建目录，并只补齐缺失的：
+
+```text
+config.conf
+matugen.conf
+```
+
+已有文件永远不会被覆盖。`config.conf` 是用户主配置；`matugen.conf` 是需要直接编辑时
+使用的 Matugen 输入模板。`colors.conf` 是 Matugen 生成的配色结果，不在首次运行时强制
+创建；缺失时使用已安装的默认配色和程序内置的紧急 fallback，Matugen 真正运行后再写入。
+
+普通配置示例：
 
 ```ini
 [general]
@@ -40,29 +125,20 @@ update_interval_ms=1000
 temperature_unit=celsius
 ```
 
-刷新间隔限制为 250–60000 毫秒；命令行 `--interval` 优先于配置。温度还可以显示为
-`fahrenheit`，但 `keytop value` 的机器输出始终保留摄氏固定单位和原有 schema。
+刷新间隔限制为 250–60000 毫秒，命令行 `--interval` 优先于配置。运行中的 TUI 收到
+`SIGHUP` 后会重新读取 `colors.conf`，不清空采样历史。
 
-同目录的 `matugen.conf` 是输入模板，`colors.conf` 是动态配色结果。内置颜色是最后
-fallback，损坏的单个颜色不会使整个 TUI 失效。运行中的 TUI 收到 `SIGHUP` 后只重新
-读取颜色，不会停止采样或清空历史曲线；一次性执行 `keytop reload` 会准确通知正在
-运行的 Keytop TUI，不会启动 daemon。
+## RAPL 和权限
 
-RAPL helper 使用 `/run/keytop/rapl.sock`，仅返回功耗采样所需的固定 JSON。可通过
-`KEYTOP_RAPL_SOCKET` 覆盖测试路径；旧 `CLAVIS_RAPL_SOCKET` 暂时兼容读取。
-不再需要 `key setup cpu-power`；该命令已从 `key-cli` 删除。
+Linux collector 直接扫描并读取：
 
-## 与 Clavis Shell 的关系
+```text
+/sys/class/powercap/intel-rapl:*/energy_uj
+/sys/class/powercap/intel-rapl:*/max_energy_range_uj
+```
 
-Shell 的系统页直接运行稳定的 `keytop stream --format jsonl`，不经过 `key`。为了
-兼容旧快捷键，`key-cli` 可以提供 `key top` 转发到 `keytop`，但 keytop 本身永远不是
-daemon，也不提供常驻 socket 服务。
+它保留 package RAPL 选择、单调时钟功率计算和计数器回绕处理；接口不存在、不可读或运行在
+虚拟机/非 Intel 环境时，功耗指标会优雅降级。keytop 不安装、启动或连接任何 helper、
+daemon、socket、Polkit 或 D-Bus 服务。
 
-## 用户状态和未来 AUR
-
-Keytop 首次显式安装时只补齐缺失的三个配置示例，不覆盖已有用户文件；运行时读取
-Linux `/proc`、`/sys`、系统设备和可选 RAPL socket。CMake 标准安装变量、`DESTDIR` 和
-manifest 适合未来 `package()` 阶段安装到 `/usr`，AUR 包应把 `ncurses`、Qt6 Core/Network
-和可选 RAPL 集成声明为依赖。
-
-详细协议见 [docs/protocol.md](docs/protocol.md)。
+详细机器输出协议见 [docs/protocol.md](docs/protocol.md)。

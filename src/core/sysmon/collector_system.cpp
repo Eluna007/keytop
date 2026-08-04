@@ -1,6 +1,4 @@
 #include "collector.h"
-#include "runtime/rapl_helper_client.h"
-
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -419,25 +417,15 @@ RawCpuInfo LinuxCollector::collectCpu(QVector<Error> *errors) const
         result.packageEnergyRangeMicroJoules =
             readInteger(m_packageEnergyRangePath);
         if (!energyOk && QFileInfo::exists(m_packageEnergyPath)) {
-            const Clavis::Runtime::RaplHelperSnapshot helper =
-                Clavis::Runtime::RaplHelperClient::query();
-            if (helper.energyMicroJoules) {
-                result.packageEnergyMicroJoules = helper.energyMicroJoules;
-                result.packageEnergyRangeMicroJoules = helper.rangeMicroJoules;
-            } else {
-                errors->push_back({
-                    QStringLiteral("cpu"),
-                    helper.status == QStringLiteral("helper_missing")
-                            && !QFileInfo(m_packageEnergyPath).isReadable()
-                        ? QStringLiteral("rapl_energy_permission_denied")
-                        : QStringLiteral("rapl_%1").arg(helper.status),
-                    QStringLiteral(
-                        "Intel RAPL is present but unavailable (%1). Other "
-                        "system metrics remain available; run key doctor "
-                        "cpu-power for optional integration status.")
-                        .arg(helper.status),
-                });
-            }
+            const bool readable = QFileInfo(m_packageEnergyPath).isReadable();
+            errors->push_back({
+                QStringLiteral("cpu"),
+                readable ? QStringLiteral("rapl_energy_read_failed")
+                         : QStringLiteral("rapl_energy_permission_denied"),
+                QStringLiteral(
+                    "Intel RAPL is present but unavailable; direct access to "
+                    "energy_uj failed. Other system metrics remain available."),
+            });
         }
     }
     if (!m_fanPath.isEmpty())

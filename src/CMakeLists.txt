@@ -1,13 +1,3 @@
-add_library(KeytopRuntime STATIC
-    core/runtime/clavis_paths.h
-    core/runtime/clavis_paths.cpp
-    core/runtime/rapl_helper_client.h
-    core/runtime/rapl_helper_client.cpp
-)
-set_target_properties(KeytopRuntime PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_include_directories(KeytopRuntime PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/core")
-target_link_libraries(KeytopRuntime PUBLIC Qt6::Core Qt6::Network)
-
 add_library(KeytopSysmon STATIC
     core/sysmon/types.h
     core/sysmon/parsers.h
@@ -24,9 +14,7 @@ add_library(KeytopSysmon STATIC
 set_target_properties(KeytopSysmon PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(KeytopSysmon PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/core")
 target_link_libraries(KeytopSysmon PUBLIC
-    KeytopRuntime
     Qt6::Core
-    Qt6::Network
 )
 
 add_executable(keytop
@@ -55,23 +43,15 @@ target_include_directories(keytop PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/tui"
 )
 target_link_libraries(keytop PRIVATE
-    KeytopRuntime
     KeytopSysmon
     Qt6::Core
-    Qt6::Network
     PkgConfig::NCURSESW
 )
-
-add_executable(clavis-rapl-helper helper/rapl/main.cpp)
-target_compile_features(clavis-rapl-helper PRIVATE cxx_std_17)
-target_link_libraries(clavis-rapl-helper PRIVATE Qt6::Core)
-set_target_properties(clavis-rapl-helper PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+target_compile_definitions(keytop PRIVATE
+    KEYTOP_DEFAULTS_INSTALL_DIR="${KEYTOP_DEFAULTS_INSTALL_DIR}"
+    KEYTOP_BUILD_DEFAULTS_DIR="${KEYTOP_BUILD_DEFAULTS_DIR}"
 )
 
 install(TARGETS keytop
     RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
-)
-install(TARGETS clavis-rapl-helper
-    RUNTIME DESTINATION "${CMAKE_INSTALL_LIBEXECDIR}/keytop"
 )

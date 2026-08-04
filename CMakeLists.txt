@@ -9,17 +9,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Network)
+find_package(Qt6 REQUIRED COMPONENTS Core)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(NCURSESW IMPORTED_TARGET ncursesw REQUIRED)
 
-set(KEYTOP_SYSTEMD_UNIT_DIR "${CMAKE_INSTALL_LIBDIR}/systemd/system"
-    CACHE PATH "systemd system unit installation directory")
-configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/packaging/systemd/keytop-rapl.service.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/keytop-rapl.service"
-    @ONLY
-)
+set(KEYTOP_DEFAULTS_INSTALL_DIR
+    "${CMAKE_INSTALL_FULL_DATADIR}/keytop/defaults")
+set(KEYTOP_BUILD_DEFAULTS_DIR "${CMAKE_BINARY_DIR}/keytop-defaults")
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/defaults/"
+     DESTINATION "${KEYTOP_BUILD_DEFAULTS_DIR}")
 
 add_subdirectory(src)
 
@@ -37,9 +35,4 @@ install(FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/defaults/colors.conf"
     "${CMAKE_CURRENT_SOURCE_DIR}/defaults/matugen.conf"
     DESTINATION "${CMAKE_INSTALL_DATADIR}/keytop/defaults"
-)
-install(FILES
-    "${CMAKE_CURRENT_SOURCE_DIR}/packaging/systemd/keytop-rapl.socket"
-    "${CMAKE_CURRENT_BINARY_DIR}/keytop-rapl.service"
-    DESTINATION "${KEYTOP_SYSTEMD_UNIT_DIR}"
 )

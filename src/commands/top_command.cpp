@@ -5,8 +5,10 @@
 #include "tui/top_tui.h"
 
 #include <QByteArray>
+#include <QDebug>
 
 #include <exception>
+#include <optional>
 #include <unistd.h>
 
 namespace {
@@ -30,10 +32,8 @@ CommandResult usageError(const QString &message)
 
 CommandResult TopCommand::run(const QStringList &arguments) const
 {
-    const KeytopConfig config = loadKeytopConfig();
     TopTui::Options options;
-    options.refreshIntervalMs = config.updateIntervalMs;
-    options.temperatureUnit = config.temperatureUnit;
+    std::optional<int> requestedInterval;
 
     for (int index = 0; index < arguments.size(); ++index) {
         const QString &argument = arguments.at(index);
@@ -55,12 +55,21 @@ CommandResult TopCommand::run(const QStringList &arguments) const
                 return usageError(
                     QStringLiteral("--interval must be between 250 and 60000 milliseconds"));
             }
-            options.refreshIntervalMs = interval;
+            requestedInterval = interval;
             continue;
         }
         return usageError(
             QStringLiteral("Unknown or incomplete top option: %1").arg(argument));
     }
+
+    QString initializationError;
+    if (!keytopInitializeConfig(&initializationError)
+        && !initializationError.isEmpty()) {
+        qWarning("keytop: %s", qPrintable(initializationError));
+    }
+    const KeytopConfig config = loadKeytopConfig();
+    options.refreshIntervalMs = requestedInterval.value_or(config.updateIntervalMs);
+    options.temperatureUnit = config.temperatureUnit;
 
     if (!::isatty(STDIN_FILENO) || !::isatty(STDOUT_FILENO)) {
         return {
