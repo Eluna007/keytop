@@ -100,16 +100,16 @@ void applyColor(const QHash<QString, QString> &values,
 KeytopPalette fallbackPalette()
 {
     return {
-        QStringLiteral("#101413"),
-        QStringLiteral("#E7EBE9"),
-        QStringLiteral("#5CD6B9"),
-        QStringLiteral("#B1BCB8"),
-        QStringLiteral("#4C5854"),
-        QStringLiteral("#FFC45C"),
-        QStringLiteral("#FFB4AB"),
-        QStringLiteral("#005144"),
-        QStringLiteral("#A0F2DE"),
-        QStringLiteral("#B1CCC4"),
+        QStringLiteral("#131318"),
+        QStringLiteral("#e4e1e9"),
+        QStringLiteral("#bbc3ff"),
+        QStringLiteral("#c7c5d0"),
+        QStringLiteral("#46464f"),
+        QStringLiteral("#e6bad7"),
+        QStringLiteral("#ffb4ab"),
+        QStringLiteral("#3b4279"),
+        QStringLiteral("#dfe0ff"),
+        QStringLiteral("#c4c5dd"),
     };
 }
 

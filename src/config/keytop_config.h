@@ -16,7 +16,7 @@ struct KeytopPalette {
 };
 
 struct KeytopConfig {
-    int updateIntervalMs = 1000;
+    int updateIntervalMs = 2000;
     QString temperatureUnit = QStringLiteral("celsius");
     KeytopPalette palette;
 };

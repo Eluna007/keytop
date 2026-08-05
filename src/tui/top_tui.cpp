@@ -291,16 +291,16 @@ private:
         m_colorEnabled = true;
 
         const KeytopPalette palette = loadKeytopConfig().palette;
-        const Rgb surface = role(palette.surface, {16, 20, 19});
-        const Rgb onSurface = role(palette.onSurface, {231, 235, 233});
-        const Rgb primary = role(palette.primary, {92, 214, 185});
-        const Rgb muted = role(palette.muted, {177, 188, 184});
-        const Rgb outline = role(palette.outline, {76, 88, 84});
-        const Rgb warning = role(palette.warning, {255, 196, 92});
+        const Rgb surface = role(palette.surface, {19, 19, 24});
+        const Rgb onSurface = role(palette.onSurface, {228, 225, 233});
+        const Rgb primary = role(palette.primary, {187, 195, 255});
+        const Rgb muted = role(palette.muted, {199, 197, 208});
+        const Rgb outline = role(palette.outline, {70, 70, 79});
+        const Rgb warning = role(palette.warning, {230, 186, 215});
         const Rgb critical = role(palette.critical, {255, 180, 171});
-        const Rgb selectedBackground = role(palette.selectedBackground, {0, 81, 68});
-        const Rgb selectedForeground = role(palette.selectedForeground, {160, 242, 222});
-        const Rgb good = role(palette.good, {177, 204, 196});
+        const Rgb selectedBackground = role(palette.selectedBackground, {59, 66, 121});
+        const Rgb selectedForeground = role(palette.selectedForeground, {223, 224, 255});
+        const Rgb good = role(palette.good, {196, 197, 221});
 
         const bool trueColorAdvertised =
             qEnvironmentVariable("COLORTERM").contains(QStringLiteral("truecolor"),

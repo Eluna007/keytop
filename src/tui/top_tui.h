@@ -11,7 +11,7 @@ class Sampler;
 class TopTui {
 public:
     struct Options {
-        int refreshIntervalMs = 1000;
+        int refreshIntervalMs = 2000;
         QString temperatureUnit = QStringLiteral("celsius");
         bool forceAscii = false;
     };

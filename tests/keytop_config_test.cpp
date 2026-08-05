@@ -22,9 +22,9 @@ void KeytopConfigTest::defaultsAreStable()
     qputenv("KEYTOP_CONFIG_DIR", directory.path().toUtf8());
 
     const KeytopConfig config = loadKeytopConfig();
-    QCOMPARE(config.updateIntervalMs, 1000);
+    QCOMPARE(config.updateIntervalMs, 2000);
     QCOMPARE(config.temperatureUnit, QStringLiteral("celsius"));
-    QCOMPARE(config.palette.primary, QStringLiteral("#5CD6B9"));
+    QCOMPARE(config.palette.primary, QStringLiteral("#bbc3ff"));
     qunsetenv("KEYTOP_CONFIG_DIR");
 }
 
@@ -82,10 +82,10 @@ void KeytopConfigTest::colorsAndGeneralSettingsAreMerged()
     configFile.close();
 
     const KeytopConfig config = loadKeytopConfig();
-    QCOMPARE(config.updateIntervalMs, 1000);
+    QCOMPARE(config.updateIntervalMs, 2000);
     QCOMPARE(config.temperatureUnit, QStringLiteral("fahrenheit"));
     QCOMPARE(config.palette.primary, QStringLiteral("#abcdef"));
-    QCOMPARE(config.palette.critical, QStringLiteral("#FFB4AB"));
+    QCOMPARE(config.palette.critical, QStringLiteral("#ffb4ab"));
     qunsetenv("KEYTOP_CONFIG_DIR");
 }
 
