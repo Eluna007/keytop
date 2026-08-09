@@ -2,8 +2,8 @@
 
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/StatIndet/picture/main/keytop1.png" alt="Clavis Shell" width="49%" />
-  <img src="https://raw.githubusercontent.com/StatIndet/picture/main/keytop2.png" alt="Clavis media" width="49%" />
+  <img src="https://raw.githubusercontent.com/StatIndet/picture/main/keytop1.png" alt="keytop1" width="49%" />
+  <img src="https://raw.githubusercontent.com/StatIndet/picture/main/keytop2.png" alt="keytop2" width="49%" />
 </p>
 
 A standalone system monitor for Linux with an interactive terminal UI and machine-readable JSON/JSONL output.
