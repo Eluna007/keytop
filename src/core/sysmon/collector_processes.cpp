@@ -29,14 +29,9 @@ QString userNameForUid(uid_t uid)
     if (suggested < 1024)
         suggested = 16384;
     QByteArray buffer(static_cast<qsizetype>(suggested), Qt::Uninitialized);
-    struct passwd entry {};
+    struct passwd entry{};
     struct passwd *result = nullptr;
-    if (::getpwuid_r(uid,
-                     &entry,
-                     buffer.data(),
-                     static_cast<size_t>(buffer.size()),
-                     &result)
-            == 0
+    if (::getpwuid_r(uid, &entry, buffer.data(), static_cast<size_t>(buffer.size()), &result) == 0
         && result && result->pw_name) {
         return QString::fromLocal8Bit(result->pw_name);
     }
@@ -84,15 +79,13 @@ QString fullCommand(const QByteArray &raw, const QString &fallback)
 
 } // namespace
 
-QVector<RawProcessInfo> LinuxCollector::collectProcesses(
-    quint64 totalMemoryBytes,
-    qint64 bootTimeMs,
-    QVector<Error> *errors) const
+QVector<RawProcessInfo> LinuxCollector::collectProcesses(quint64 totalMemoryBytes,
+                                                         qint64 bootTimeMs,
+                                                         QVector<Error> *errors) const
 {
     QVector<RawProcessInfo> result;
     const QDir proc(QStringLiteral("/proc"));
-    const QStringList entries =
-        proc.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable);
+    const QStringList entries = proc.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable);
     const long pageSize = ::sysconf(_SC_PAGESIZE);
     const long clockTicks = ::sysconf(_SC_CLK_TCK);
     const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
@@ -107,8 +100,7 @@ QVector<RawProcessInfo> LinuxCollector::collectProcesses(
             continue;
 
         const QString base = proc.absoluteFilePath(entry);
-        const ProcessStat stat =
-            parseProcessStat(readAll(base + QStringLiteral("/stat")));
+        const ProcessStat stat = parseProcessStat(readAll(base + QStringLiteral("/stat")));
         if (!stat.valid || stat.pid != pid)
             continue; // The process may have exited between directory and read.
 
@@ -122,40 +114,32 @@ QVector<RawProcessInfo> LinuxCollector::collectProcesses(
         process.startTicks = stat.startTicks;
         process.info.processStartTicks = stat.startTicks;
         if (clockTicks > 0 && bootTimeMs > 0) {
-            process.info.startTimeMs =
-                bootTimeMs
-                + static_cast<qint64>(
-                    static_cast<long double>(stat.startTicks) * 1000.0L
-                    / static_cast<long double>(clockTicks));
-            process.info.runtimeSeconds =
-                std::max<qint64>(
-                    0,
-                    (nowMs - process.info.startTimeMs) / 1000);
+            process.info.startTimeMs
+                = bootTimeMs
+                  + static_cast<qint64>(static_cast<long double>(stat.startTicks) * 1000.0L
+                                        / static_cast<long double>(clockTicks));
+            process.info.runtimeSeconds
+                = std::max<qint64>(0, (nowMs - process.info.startTimeMs) / 1000);
         }
 
-        const QList<QByteArray> statm =
-            readAll(base + QStringLiteral("/statm")).simplified().split(' ');
+        const QList<QByteArray> statm
+            = readAll(base + QStringLiteral("/statm")).simplified().split(' ');
         if (statm.size() >= 2 && pageSize > 0) {
             bool rssOk = false;
             const quint64 pages = statm.at(1).toULongLong(&rssOk);
             if (rssOk
-                && pages
-                    <= std::numeric_limits<quint64>::max()
-                        / static_cast<quint64>(pageSize)) {
-                process.info.memoryBytes =
-                    pages * static_cast<quint64>(pageSize);
+                && pages <= std::numeric_limits<quint64>::max() / static_cast<quint64>(pageSize)) {
+                process.info.memoryBytes = pages * static_cast<quint64>(pageSize);
                 if (totalMemoryBytes > 0) {
-                    process.info.memoryPercent =
-                        static_cast<double>(process.info.memoryBytes) * 100.0
-                        / static_cast<double>(totalMemoryBytes);
+                    process.info.memoryPercent = static_cast<double>(process.info.memoryBytes)
+                                                 * 100.0 / static_cast<double>(totalMemoryBytes);
                 }
             }
         }
 
-        process.info.command = fullCommand(
-            readAll(base + QStringLiteral("/cmdline")), process.info.name);
-        process.info.executablePath =
-            QFileInfo(base + QStringLiteral("/exe")).symLinkTarget();
+        process.info.command
+            = fullCommand(readAll(base + QStringLiteral("/cmdline")), process.info.name);
+        process.info.executablePath = QFileInfo(base + QStringLiteral("/exe")).symLinkTarget();
 
         const QFileInfo directoryInfo(base);
         const uint uid = directoryInfo.ownerId();
@@ -164,9 +148,7 @@ QVector<RawProcessInfo> LinuxCollector::collectProcesses(
         } else {
             auto user = users.constFind(uid);
             if (user == users.cend()) {
-                user = users.insert(
-                    uid,
-                    userNameForUid(static_cast<uid_t>(uid)));
+                user = users.insert(uid, userNameForUid(static_cast<uid_t>(uid)));
             }
             process.info.user = *user;
         }

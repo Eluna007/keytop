@@ -78,7 +78,8 @@ void KeytopConfigTest::colorsAndGeneralSettingsAreMerged()
 
     QFile configFile(directory.path() + QStringLiteral("/config.conf"));
     QVERIFY(configFile.open(QIODevice::WriteOnly | QIODevice::Text));
-    configFile.write("[general]\nupdate_interval_ms=100\ntemperature_unit=fahrenheit\n\n[colors]\nprimary=#abcdef\n");
+    configFile.write("[general]\nupdate_interval_ms=100\ntemperature_unit=fahrenheit\n\n[colors]"
+                     "\nprimary=#abcdef\n");
     configFile.close();
 
     const KeytopConfig config = loadKeytopConfig();

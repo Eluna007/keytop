@@ -66,8 +66,7 @@ CpuCounters parseProcStat(const QByteArray &contents)
             result.valid = result.total.total() > 0;
             continue;
         }
-        if (line.size() > 3 && line.startsWith("cpu")
-            && line.at(3) >= '0' && line.at(3) <= '9') {
+        if (line.size() > 3 && line.startsWith("cpu") && line.at(3) >= '0' && line.at(3) <= '9') {
             const QList<QByteArray> parts = line.split(' ');
             bool idOk = false;
             const int id = parts.value(0).mid(3).toInt(&idOk);
@@ -75,12 +74,11 @@ CpuCounters parseProcStat(const QByteArray &contents)
                 result.cores.push_back({id, parseCpuLine(line)});
         }
     }
-    std::sort(
-        result.cores.begin(),
-        result.cores.end(),
-        [](const CpuCounters::Core &left, const CpuCounters::Core &right) {
-            return left.id < right.id;
-        });
+    std::sort(result.cores.begin(),
+              result.cores.end(),
+              [](const CpuCounters::Core &left, const CpuCounters::Core &right) {
+                  return left.id < right.id;
+              });
     return result;
 }
 
@@ -93,8 +91,7 @@ OptionalInteger parseProcBootTimeMs(const QByteArray &contents)
             continue;
         bool ok = false;
         const qint64 seconds = parts.at(1).toLongLong(&ok);
-        if (!ok || seconds <= 0
-            || seconds > std::numeric_limits<qint64>::max() / 1000) {
+        if (!ok || seconds <= 0 || seconds > std::numeric_limits<qint64>::max() / 1000) {
             return std::nullopt;
         }
         return seconds * 1000;
@@ -134,9 +131,8 @@ MemoryCounters parseMeminfo(const QByteArray &contents)
     // fallback follows procps' broad intent without treating reclaimable cache
     // as permanently used.
     if (result.valid && !values.contains("MemAvailable")) {
-        result.memAvailableKiB = std::min(
-            result.memTotalKiB,
-            result.memFreeKiB + result.buffersKiB + result.cachedKiB);
+        result.memAvailableKiB = std::min(result.memTotalKiB,
+                                          result.memFreeKiB + result.buffersKiB + result.cachedKiB);
     }
     return result;
 }
@@ -150,8 +146,7 @@ QHash<QString, NetworkCounter> parseProcNetDev(const QByteArray &contents)
         if (colon <= 0)
             continue;
         const QString name = QString::fromUtf8(rawLine.left(colon)).trimmed();
-        const QList<QByteArray> fields =
-            rawLine.mid(colon + 1).simplified().split(' ');
+        const QList<QByteArray> fields = rawLine.mid(colon + 1).simplified().split(' ');
         if (name.isEmpty() || fields.size() < 16)
             continue;
         bool rxOk = false;
@@ -164,27 +159,24 @@ QHash<QString, NetworkCounter> parseProcNetDev(const QByteArray &contents)
     return result;
 }
 
-QString parseDefaultRouteInterface(const QByteArray &ipv4Routes,
-                                   const QByteArray &ipv6Routes)
+QString parseDefaultRouteInterface(const QByteArray &ipv4Routes, const QByteArray &ipv6Routes)
 {
     QString selected;
     quint64 selectedMetric = std::numeric_limits<quint64>::max();
 
-    const auto consider = [&selected, &selectedMetric](
-                              const QByteArray &interface,
-                              const QByteArray &metricText,
-                              int metricBase,
-                              const QByteArray &flagsText,
-                              int flagsBase) {
+    const auto consider = [&selected, &selectedMetric](const QByteArray &interface,
+                                                       const QByteArray &metricText,
+                                                       int metricBase,
+                                                       const QByteArray &flagsText,
+                                                       int flagsBase) {
         bool metricOk = false;
         bool flagsOk = false;
         const quint64 metric = metricText.toULongLong(&metricOk, metricBase);
         const quint64 flags = flagsText.toULongLong(&flagsOk, flagsBase);
         constexpr quint64 RouteUp = 0x1;
         constexpr quint64 RouteReject = 0x200;
-        if (interface.isEmpty() || !metricOk || !flagsOk
-            || !(flags & RouteUp) || (flags & RouteReject)
-            || metric >= selectedMetric) {
+        if (interface.isEmpty() || !metricOk || !flagsOk || !(flags & RouteUp)
+            || (flags & RouteReject) || metric >= selectedMetric) {
             return;
         }
         selected = QString::fromUtf8(interface);
@@ -193,8 +185,7 @@ QString parseDefaultRouteInterface(const QByteArray &ipv4Routes,
 
     for (const QByteArray &raw : ipv4Routes.split('\n')) {
         const QList<QByteArray> fields = raw.simplified().split(' ');
-        if (fields.size() < 8 || fields.at(1) != "00000000"
-            || fields.at(7) != "00000000") {
+        if (fields.size() < 8 || fields.at(1) != "00000000" || fields.at(7) != "00000000") {
             continue;
         }
         consider(fields.at(0), fields.at(6), 10, fields.at(3), 16);
@@ -203,8 +194,7 @@ QString parseDefaultRouteInterface(const QByteArray &ipv4Routes,
     const QByteArray zeroV6(32, '0');
     for (const QByteArray &raw : ipv6Routes.split('\n')) {
         const QList<QByteArray> fields = raw.simplified().split(' ');
-        if (fields.size() < 10 || fields.at(0) != zeroV6
-            || fields.at(1) != "00") {
+        if (fields.size() < 10 || fields.at(0) != zeroV6 || fields.at(1) != "00") {
             continue;
         }
         consider(fields.at(9), fields.at(5), 16, fields.at(8), 16);
@@ -219,9 +209,8 @@ QString composeDeviceCursorKey(const QString &name,
     if (name.isEmpty())
         return {};
     return name + QLatin1Char('#')
-        + (generation.isEmpty()
-               ? QStringLiteral("fallback:") + fallbackIdentity
-               : QStringLiteral("generation:") + generation);
+           + (generation.isEmpty() ? QStringLiteral("fallback:") + fallbackIdentity
+                                   : QStringLiteral("generation:") + generation);
 }
 
 std::optional<DiskCounter> parseDiskStatLine(const QByteArray &contents)
@@ -252,8 +241,7 @@ ProcessStat parseProcessStat(const QByteArray &contents)
     bool pidOk = false;
     result.pid = contents.left(open).trimmed().toLongLong(&pidOk);
     result.name = QString::fromUtf8(contents.mid(open + 1, close - open - 1));
-    const QList<QByteArray> fields =
-        contents.mid(close + 1).simplified().split(' ');
+    const QList<QByteArray> fields = contents.mid(close + 1).simplified().split(' ');
     if (!pidOk || fields.size() < 20)
         return result;
 
@@ -262,9 +250,7 @@ ProcessStat parseProcessStat(const QByteArray &contents)
     bool systemOk = false;
     bool threadsOk = false;
     bool startOk = false;
-    result.state = fields.at(0).isEmpty()
-        ? QChar()
-        : QChar::fromLatin1(fields.at(0).at(0));
+    result.state = fields.at(0).isEmpty() ? QChar() : QChar::fromLatin1(fields.at(0).at(0));
     result.ppid = fields.at(1).toLongLong(&ppidOk);
     result.userTicks = fields.at(11).toULongLong(&userOk);
     result.systemTicks = fields.at(12).toULongLong(&systemOk);
@@ -286,10 +272,7 @@ OptionalNumber percentageDelta(quint64 previousPart,
         return std::nullopt;
     const quint64 partDelta = currentPart - previousPart;
     return std::clamp(
-        static_cast<double>(partDelta) * 100.0
-            / static_cast<double>(totalDelta),
-        0.0,
-        100.0);
+        static_cast<double>(partDelta) * 100.0 / static_cast<double>(totalDelta), 0.0, 100.0);
 }
 
 OptionalNumber counterRate(quint64 previous, quint64 current, double elapsedSeconds)
@@ -304,12 +287,11 @@ OptionalNumber processCpuPercent(quint64 previousTicks,
                                  long ticksPerSecond,
                                  double elapsedSeconds)
 {
-    if (currentTicks < previousTicks || ticksPerSecond <= 0
-        || elapsedSeconds <= 0.0) {
+    if (currentTicks < previousTicks || ticksPerSecond <= 0 || elapsedSeconds <= 0.0) {
         return std::nullopt;
     }
     return static_cast<double>(currentTicks - previousTicks) * 100.0
-        / (static_cast<double>(ticksPerSecond) * elapsedSeconds);
+           / (static_cast<double>(ticksPerSecond) * elapsedSeconds);
 }
 
 CpuInfo calculateCpuInfo(const CpuCounters &previous, const CpuCounters &current)
@@ -325,35 +307,25 @@ CpuInfo calculateCpuInfo(const CpuCounters &previous, const CpuCounters &current
         return result;
 
     const OptionalNumber inactive = percentageDelta(
-        previous.total.idleTotal(),
-        current.total.idleTotal(),
-        previousTotal,
-        currentTotal);
+        previous.total.idleTotal(), current.total.idleTotal(), previousTotal, currentTotal);
     if (!inactive)
         return result;
 
     result.sampleReady = true;
     result.usagePercent = std::clamp(100.0 - *inactive, 0.0, 100.0);
-    result.userPercent = percentageDelta(
-        previous.total.user + previous.total.nice,
-        current.total.user + current.total.nice,
-        previousTotal,
-        currentTotal);
-    result.systemPercent = percentageDelta(
-        previous.total.system + previous.total.irq + previous.total.softirq,
-        current.total.system + current.total.irq + current.total.softirq,
-        previousTotal,
-        currentTotal);
-    result.idlePercent = percentageDelta(
-        previous.total.idle,
-        current.total.idle,
-        previousTotal,
-        currentTotal);
-    result.iowaitPercent = percentageDelta(
-        previous.total.iowait,
-        current.total.iowait,
-        previousTotal,
-        currentTotal);
+    result.userPercent = percentageDelta(previous.total.user + previous.total.nice,
+                                         current.total.user + current.total.nice,
+                                         previousTotal,
+                                         currentTotal);
+    result.systemPercent
+        = percentageDelta(previous.total.system + previous.total.irq + previous.total.softirq,
+                          current.total.system + current.total.irq + current.total.softirq,
+                          previousTotal,
+                          currentTotal);
+    result.idlePercent
+        = percentageDelta(previous.total.idle, current.total.idle, previousTotal, currentTotal);
+    result.iowaitPercent
+        = percentageDelta(previous.total.iowait, current.total.iowait, previousTotal, currentTotal);
 
     QHash<int, CpuTimes> previousCores;
     previousCores.reserve(previous.cores.size());
@@ -371,12 +343,10 @@ CpuInfo calculateCpuInfo(const CpuCounters &previous, const CpuCounters &current
         }
         const CpuTimes &before = *previousCore;
         const CpuTimes &after = currentCore.times;
-        const OptionalNumber coreIdle = percentageDelta(
-            before.idleTotal(), after.idleTotal(), before.total(), after.total());
+        const OptionalNumber coreIdle
+            = percentageDelta(before.idleTotal(), after.idleTotal(), before.total(), after.total());
         result.coreUsagePercent.push_back(
-            coreIdle
-                ? OptionalNumber(std::clamp(100.0 - *coreIdle, 0.0, 100.0))
-                : std::nullopt);
+            coreIdle ? OptionalNumber(std::clamp(100.0 - *coreIdle, 0.0, 100.0)) : std::nullopt);
     }
     return result;
 }
@@ -389,21 +359,18 @@ MemoryInfo calculateMemoryInfo(const MemoryCounters &counters)
         return result;
 
     result.totalBytes = kibToBytes(counters.memTotalKiB);
-    result.availableBytes =
-        kibToBytes(std::min(counters.memAvailableKiB, counters.memTotalKiB));
+    result.availableBytes = kibToBytes(std::min(counters.memAvailableKiB, counters.memTotalKiB));
     result.usedBytes = result.totalBytes - result.availableBytes;
-    result.freeBytes =
-        kibToBytes(std::min(counters.memFreeKiB, counters.memTotalKiB));
+    result.freeBytes = kibToBytes(std::min(counters.memFreeKiB, counters.memTotalKiB));
     result.cachedBytes = kibToBytes(counters.cachedKiB);
     result.buffersBytes = kibToBytes(counters.buffersKiB);
     result.swapTotalBytes = kibToBytes(counters.swapTotalKiB);
-    const quint64 swapFree =
-        std::min(counters.swapFreeKiB, counters.swapTotalKiB);
+    const quint64 swapFree = std::min(counters.swapFreeKiB, counters.swapTotalKiB);
     result.swapUsedBytes = kibToBytes(counters.swapTotalKiB - swapFree);
     result.usagePercent = result.totalBytes > 0
-        ? OptionalNumber(static_cast<double>(result.usedBytes) * 100.0
-                         / static_cast<double>(result.totalBytes))
-        : std::nullopt;
+                              ? OptionalNumber(static_cast<double>(result.usedBytes) * 100.0
+                                               / static_cast<double>(result.totalBytes))
+                              : std::nullopt;
     return result;
 }
 

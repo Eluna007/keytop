@@ -77,12 +77,12 @@ public:
 private:
     struct Entry {
         int number = 0;
-        struct sigaction previous {};
+        struct sigaction previous{};
     };
 
     void install(int number, void (*handler)(int))
     {
-        struct sigaction action {};
+        struct sigaction action{};
         ::sigemptyset(&action.sa_mask);
         action.sa_handler = handler;
         action.sa_flags = 0;
@@ -93,7 +93,7 @@ private:
             m_entries.at(m_count++) = entry;
     }
 
-    std::array<Entry, 4> m_entries {};
+    std::array<Entry, 4> m_entries{};
     int m_count = 0;
 };
 
@@ -143,9 +143,8 @@ public:
 
     void resize()
     {
-        struct winsize size {};
-        if (::ioctl(STDOUT_FILENO, TIOCGWINSZ, &size) == 0
-            && size.ws_row > 0 && size.ws_col > 0) {
+        struct winsize size{};
+        if (::ioctl(STDOUT_FILENO, TIOCGWINSZ, &size) == 0 && size.ws_row > 0 && size.ws_col > 0) {
             ::resizeterm(size.ws_row, size.ws_col);
         } else {
             ::resize_term(0, 0);
@@ -191,9 +190,7 @@ int nearestXtermColor(const Rgb &color)
             return 1;
         return std::min(5, (component - 35) / 40);
     };
-    const auto cubeValue = [](int level) {
-        return level == 0 ? 0 : 55 + level * 40;
-    };
+    const auto cubeValue = [](int level) { return level == 0 ? 0 : 55 + level * 40; };
 
     const int redLevel = cubeLevel(color.red);
     const int greenLevel = cubeLevel(color.green);
@@ -202,18 +199,16 @@ int nearestXtermColor(const Rgb &color)
     const int cubeRed = cubeValue(redLevel);
     const int cubeGreen = cubeValue(greenLevel);
     const int cubeBlue = cubeValue(blueLevel);
-    const int cubeDistance =
-        (color.red - cubeRed) * (color.red - cubeRed)
-        + (color.green - cubeGreen) * (color.green - cubeGreen)
-        + (color.blue - cubeBlue) * (color.blue - cubeBlue);
+    const int cubeDistance = (color.red - cubeRed) * (color.red - cubeRed)
+                             + (color.green - cubeGreen) * (color.green - cubeGreen)
+                             + (color.blue - cubeBlue) * (color.blue - cubeBlue);
 
     const int average = (color.red + color.green + color.blue) / 3;
     const int grayLevel = std::clamp((average - 8 + 5) / 10, 0, 23);
     const int grayValue = 8 + grayLevel * 10;
-    const int grayDistance =
-        (color.red - grayValue) * (color.red - grayValue)
-        + (color.green - grayValue) * (color.green - grayValue)
-        + (color.blue - grayValue) * (color.blue - grayValue);
+    const int grayDistance = (color.red - grayValue) * (color.red - grayValue)
+                             + (color.green - grayValue) * (color.green - grayValue)
+                             + (color.blue - grayValue) * (color.blue - grayValue);
 
     return grayDistance < cubeDistance ? 232 + grayLevel : cubeIndex;
 }
@@ -286,8 +281,7 @@ private:
             return;
 
         ::start_color();
-        const int defaultBackground =
-            ::use_default_colors() == OK ? -1 : COLOR_BLACK;
+        const int defaultBackground = ::use_default_colors() == OK ? -1 : COLOR_BLACK;
         m_colorEnabled = true;
 
         const KeytopPalette palette = loadKeytopConfig().palette;
@@ -302,11 +296,11 @@ private:
         const Rgb selectedForeground = role(palette.selectedForeground, {223, 224, 255});
         const Rgb good = role(palette.good, {196, 197, 221});
 
-        const bool trueColorAdvertised =
-            qEnvironmentVariable("COLORTERM").contains(QStringLiteral("truecolor"),
-                                                        Qt::CaseInsensitive)
-            || qEnvironmentVariable("COLORTERM").contains(QStringLiteral("24bit"),
-                                                           Qt::CaseInsensitive);
+        const bool trueColorAdvertised
+            = qEnvironmentVariable("COLORTERM")
+                  .contains(QStringLiteral("truecolor"), Qt::CaseInsensitive)
+              || qEnvironmentVariable("COLORTERM")
+                     .contains(QStringLiteral("24bit"), Qt::CaseInsensitive);
 
         if (trueColorAdvertised && COLORS >= 26 && ::can_change_color()) {
             const std::array<Rgb, 10> colors{
@@ -329,8 +323,7 @@ private:
                 }
             }
             if (exact) {
-                initializePairs(
-                    17, defaultBackground, 18, 19, 20, 21, 22, 24, 23, 25);
+                initializePairs(17, defaultBackground, 18, 19, 20, 21, 22, 24, 23, 25);
                 return;
             }
             restoreCustomColors();
@@ -372,8 +365,7 @@ private:
         const auto scale = [](int component) {
             return static_cast<short>(std::lround(component * 1000.0 / 255.0));
         };
-        if (::init_color(index, scale(color.red), scale(color.green), scale(color.blue))
-            == ERR) {
+        if (::init_color(index, scale(color.red), scale(color.green), scale(color.blue)) == ERR) {
             return false;
         }
         m_savedColors.push_back(saved);
@@ -382,12 +374,8 @@ private:
 
     void restoreCustomColors()
     {
-        for (auto iterator = m_savedColors.rbegin();
-             iterator != m_savedColors.rend(); ++iterator) {
-            ::init_color(iterator->index,
-                         iterator->red,
-                         iterator->green,
-                         iterator->blue);
+        for (auto iterator = m_savedColors.rbegin(); iterator != m_savedColors.rend(); ++iterator) {
+            ::init_color(iterator->index, iterator->red, iterator->green, iterator->blue);
         }
         m_savedColors.clear();
     }
@@ -496,8 +484,7 @@ QString terminalSafeText(QString text, bool asciiOnly)
     // visible text, but never pass terminal control characters to ncurses.
     for (qsizetype index = 0; index < text.size(); ++index) {
         const ushort value = text.at(index).unicode();
-        if (value < 0x20 || value == 0x7f
-            || (value >= 0x80 && value <= 0x9f)) {
+        if (value < 0x20 || value == 0x7f || (value >= 0x80 && value <= 0x9f)) {
             text[index] = QLatin1Char(' ');
         }
     }
@@ -518,36 +505,32 @@ QString terminalSafeText(QString text, bool asciiOnly)
     return text;
 }
 
-void putText(int row,
-             int column,
-             const QString &text,
-             int maximumWidth,
-             attr_t attributes,
-             bool asciiOnly)
+void putText(
+    int row, int column, const QString &text, int maximumWidth, attr_t attributes, bool asciiOnly)
 {
-    if (row < 0 || row >= LINES || column < 0 || column >= COLS
-        || maximumWidth <= 0) {
+    if (row < 0 || row >= LINES || column < 0 || column >= COLS || maximumWidth <= 0) {
         return;
     }
 
     const int available = std::min(maximumWidth, COLS - column);
-    const std::wstring output =
-        leftByWidth(terminalSafeText(text, asciiOnly), available)
-            .toStdWString();
+    const std::wstring output
+        = leftByWidth(terminalSafeText(text, asciiOnly), available).toStdWString();
     if (output.empty())
         return;
 
     ::attrset(static_cast<int>(attributes));
-    ::mvaddnwstr(row,
-                 column,
-                 output.c_str(),
-                 static_cast<int>(output.size()));
+    ::mvaddnwstr(row, column, output.c_str(), static_cast<int>(output.size()));
 }
 
 QString formatBytes(long double bytes)
 {
     static const std::array<const char *, 6> units{
-        "B", "KiB", "MiB", "GiB", "TiB", "PiB",
+        "B",
+        "KiB",
+        "MiB",
+        "GiB",
+        "TiB",
+        "PiB",
     };
     long double value = std::max(0.0L, bytes);
     int unit = 0;
@@ -563,14 +546,12 @@ QString formatBytes(long double bytes)
 
 QString formatRate(const OptionalNumber &rate)
 {
-    return rate ? formatBytes(*rate) + QStringLiteral("/s")
-                : QStringLiteral("--");
+    return rate ? formatBytes(*rate) + QStringLiteral("/s") : QStringLiteral("--");
 }
 
 QString formatPercent(const OptionalNumber &percent, int precision = 1)
 {
-    return percent ? QStringLiteral("%1%").arg(*percent, 0, 'f', precision)
-                   : QStringLiteral("--");
+    return percent ? QStringLiteral("%1%").arg(*percent, 0, 'f', precision) : QStringLiteral("--");
 }
 
 QString formatDuration(qint64 seconds)
@@ -586,9 +567,7 @@ QString formatDuration(qint64 seconds)
     return QStringLiteral("%1m %2s").arg(minutes).arg(seconds % 60);
 }
 
-QString optionalNumber(const OptionalNumber &number,
-                       const QString &suffix,
-                       int precision = 1)
+QString optionalNumber(const OptionalNumber &number, const QString &suffix, int precision = 1)
 {
     return number ? QStringLiteral("%1%2").arg(*number, 0, 'f', precision).arg(suffix)
                   : QStringLiteral("--");
@@ -656,11 +635,8 @@ struct TopTui::Impl {
         bool depthLimited = false;
     };
 
-    explicit Impl(Sampler &sampler, const Options &options)
-        : sampler(sampler)
-        , options(options)
-    {
-    }
+    explicit Impl(Sampler &sampler, const Options &options) : sampler(sampler), options(options)
+    {}
 
     int run()
     {
@@ -687,8 +663,7 @@ struct TopTui::Impl {
         ::refresh();
 
         collectSnapshot();
-        nextSample = Clock::now()
-            + std::chrono::milliseconds(options.refreshIntervalMs);
+        nextSample = Clock::now() + std::chrono::milliseconds(options.refreshIntervalMs);
 
         while (!quit && !g_stopRequested) {
             if (g_resizeRequested) {
@@ -707,8 +682,7 @@ struct TopTui::Impl {
             if (forceRefresh || (!paused && now >= nextSample)) {
                 forceRefresh = false;
                 collectSnapshot();
-                nextSample = Clock::now()
-                    + std::chrono::milliseconds(options.refreshIntervalMs);
+                nextSample = Clock::now() + std::chrono::milliseconds(options.refreshIntervalMs);
             }
 
             draw();
@@ -716,10 +690,9 @@ struct TopTui::Impl {
 
             int waitMs = 1000;
             if (!paused) {
-                const auto remaining =
-                    std::chrono::duration_cast<std::chrono::milliseconds>(
-                        nextSample - Clock::now())
-                        .count();
+                const auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                           nextSample - Clock::now())
+                                           .count();
                 waitMs = static_cast<int>(std::clamp<qint64>(remaining, 1, 1000));
             }
             ::timeout(waitMs);
@@ -762,15 +735,13 @@ struct TopTui::Impl {
                 activeGpuKeys.insert(key);
                 appendHistory(gpuHistories[key], gpu.utilizationPercent);
             }
-            for (auto iterator = gpuHistories.begin();
-                 iterator != gpuHistories.end();) {
+            for (auto iterator = gpuHistories.begin(); iterator != gpuHistories.end();) {
                 if (!activeGpuKeys.contains(iterator.key()))
                     iterator = gpuHistories.erase(iterator);
                 else
                     ++iterator;
             }
-            if (!computeGraphGpuKey.isEmpty()
-                && !activeGpuKeys.contains(computeGraphGpuKey)) {
+            if (!computeGraphGpuKey.isEmpty() && !activeGpuKeys.contains(computeGraphGpuKey)) {
                 computeGraphGpuKey.clear();
             }
             appendHistory(downloadHistory, snapshot.network.downloadBytesPerSecond);
@@ -783,19 +754,16 @@ struct TopTui::Impl {
             }
         } catch (const std::exception &exception) {
             setStatus(
-                QStringLiteral("Sampling failed: %1")
-                    .arg(QString::fromLocal8Bit(exception.what())),
+                QStringLiteral("Sampling failed: %1").arg(QString::fromLocal8Bit(exception.what())),
                 Tone::Critical,
                 5);
         } catch (...) {
-            setStatus(QStringLiteral("Sampling failed: unknown collector error"),
-                      Tone::Critical,
-                      5);
+            setStatus(
+                QStringLiteral("Sampling failed: unknown collector error"), Tone::Critical, 5);
         }
     }
 
-    static void appendHistory(std::deque<double> &history,
-                              const OptionalNumber &value)
+    static void appendHistory(std::deque<double> &history, const OptionalNumber &value)
     {
         if (!value || !std::isfinite(*value))
             return;
@@ -924,9 +892,8 @@ struct TopTui::Impl {
             if (keyCode && input == KEY_ENTER) {
                 modal = Modal::None;
                 ::curs_set(0);
-                setStatus(processFilter.isEmpty()
-                              ? QStringLiteral("Process filter cleared")
-                              : QStringLiteral("Filter: %1").arg(processFilter),
+                setStatus(processFilter.isEmpty() ? QStringLiteral("Process filter cleared")
+                                                  : QStringLiteral("Filter: %1").arg(processFilter),
                           Tone::Primary);
                 return;
             }
@@ -944,9 +911,8 @@ struct TopTui::Impl {
             if (input == L'\n' || input == L'\r') {
                 modal = Modal::None;
                 ::curs_set(0);
-                setStatus(processFilter.isEmpty()
-                              ? QStringLiteral("Process filter cleared")
-                              : QStringLiteral("Filter: %1").arg(processFilter),
+                setStatus(processFilter.isEmpty() ? QStringLiteral("Process filter cleared")
+                                                  : QStringLiteral("Filter: %1").arg(processFilter),
                           Tone::Primary);
                 return;
             }
@@ -1056,10 +1022,9 @@ struct TopTui::Impl {
     void sendSelectedSignal(int signal)
     {
         if (signalPid <= 1 || signalPid == static_cast<qint64>(::getpid())) {
-            setStatus(
-                QStringLiteral("Refusing to signal protected PID %1").arg(signalPid),
-                Tone::Critical,
-                6);
+            setStatus(QStringLiteral("Refusing to signal protected PID %1").arg(signalPid),
+                      Tone::Critical,
+                      6);
             modal = Modal::None;
             return;
         }
@@ -1068,20 +1033,16 @@ struct TopTui::Impl {
         try {
             // Confirmation can remain open indefinitely. Re-read /proc now so
             // a PID that exited and was reused cannot receive the signal.
-            verification = sampler.sample(
-                ModuleSet{QStringLiteral("processes")});
+            verification = sampler.sample(ModuleSet{QStringLiteral("processes")});
         } catch (...) {
             setStatus(
-                QStringLiteral("Could not revalidate the selected process"),
-                Tone::Critical,
-                6);
+                QStringLiteral("Could not revalidate the selected process"), Tone::Critical, 6);
             modal = Modal::None;
             return;
         }
 
         const ProcessInfo *current = nullptr;
-        for (const ProcessInfo &process :
-             std::as_const(verification.processes)) {
+        for (const ProcessInfo &process : std::as_const(verification.processes)) {
             if (process.pid == signalPid) {
                 current = &process;
                 break;
@@ -1089,23 +1050,19 @@ struct TopTui::Impl {
         }
         if (!current) {
             setStatus(
-                QStringLiteral("PID %1 already exited (ESRCH)").arg(signalPid),
-                Tone::Warning,
-                6);
+                QStringLiteral("PID %1 already exited (ESRCH)").arg(signalPid), Tone::Warning, 6);
             modal = Modal::None;
             forceRefresh = true;
             return;
         }
-        const bool identityChanged =
-            signalStartTicks > 0 && current->processStartTicks > 0
-            ? signalStartTicks != current->processStartTicks
-            : (signalStartTimeMs > 0 && current->startTimeMs > 0
-               && signalStartTimeMs != current->startTimeMs);
+        const bool identityChanged = signalStartTicks > 0 && current->processStartTicks > 0
+                                         ? signalStartTicks != current->processStartTicks
+                                         : (signalStartTimeMs > 0 && current->startTimeMs > 0
+                                            && signalStartTimeMs != current->startTimeMs);
         if (identityChanged) {
-            setStatus(
-                QStringLiteral("PID %1 was reused; signal refused").arg(signalPid),
-                Tone::Critical,
-                6);
+            setStatus(QStringLiteral("PID %1 was reused; signal refused").arg(signalPid),
+                      Tone::Critical,
+                      6);
             modal = Modal::None;
             forceRefresh = true;
             return;
@@ -1115,31 +1072,26 @@ struct TopTui::Impl {
         if (::kill(static_cast<pid_t>(signalPid), signal) == 0) {
             setStatus(
                 QStringLiteral("Sent %1 to %2 (%3)")
-                    .arg(signal == SIGTERM ? QStringLiteral("SIGTERM")
-                                           : QStringLiteral("SIGKILL"),
+                    .arg(signal == SIGTERM ? QStringLiteral("SIGTERM") : QStringLiteral("SIGKILL"),
                          signalName)
                     .arg(signalPid),
                 signal == SIGTERM ? Tone::Warning : Tone::Critical,
                 5);
             forceRefresh = true;
         } else if (errno == EPERM) {
-            setStatus(
-                QStringLiteral("Permission denied for PID %1 (EPERM)").arg(signalPid),
-                Tone::Critical,
-                6);
+            setStatus(QStringLiteral("Permission denied for PID %1 (EPERM)").arg(signalPid),
+                      Tone::Critical,
+                      6);
         } else if (errno == ESRCH) {
             setStatus(
-                QStringLiteral("PID %1 already exited (ESRCH)").arg(signalPid),
-                Tone::Warning,
-                6);
+                QStringLiteral("PID %1 already exited (ESRCH)").arg(signalPid), Tone::Warning, 6);
             forceRefresh = true;
         } else {
-            setStatus(
-                QStringLiteral("Signal failed for PID %1: %2")
-                    .arg(signalPid)
-                    .arg(QString::fromLocal8Bit(std::strerror(errno))),
-                Tone::Critical,
-                6);
+            setStatus(QStringLiteral("Signal failed for PID %1: %2")
+                          .arg(signalPid)
+                          .arg(QString::fromLocal8Bit(std::strerror(errno))),
+                      Tone::Critical,
+                      6);
         }
         modal = Modal::None;
     }
@@ -1227,8 +1179,7 @@ struct TopTui::Impl {
                 return left.pid < right.pid;
             break;
         case SortField::Name: {
-            const int comparison =
-                QString::compare(left.name, right.name, Qt::CaseInsensitive);
+            const int comparison = QString::compare(left.name, right.name, Qt::CaseInsensitive);
             if (comparison != 0)
                 return comparison < 0;
             break;
@@ -1247,11 +1198,10 @@ struct TopTui::Impl {
         for (const ProcessInfo &process : std::as_const(snapshot.processes)) {
             if (!processFilter.isEmpty()) {
                 const QString pid = QString::number(process.pid);
-                const bool matches =
-                    process.name.contains(processFilter, Qt::CaseInsensitive)
-                    || process.command.contains(processFilter, Qt::CaseInsensitive)
-                    || process.user.contains(processFilter, Qt::CaseInsensitive)
-                    || pid.contains(processFilter, Qt::CaseInsensitive);
+                const bool matches = process.name.contains(processFilter, Qt::CaseInsensitive)
+                                     || process.command.contains(processFilter, Qt::CaseInsensitive)
+                                     || process.user.contains(processFilter, Qt::CaseInsensitive)
+                                     || pid.contains(processFilter, Qt::CaseInsensitive);
                 if (!matches)
                     continue;
             }
@@ -1283,11 +1233,8 @@ struct TopTui::Impl {
         orderedPids.reserve(processRows.size());
         for (const ProcessRow &row : std::as_const(processRows))
             orderedPids.push_back(row.process.pid);
-        selectedIndex =
-            resolveProcessSelection(processSelectionExplicit,
-                                    previousPid,
-                                    previousIndex,
-                                    orderedPids);
+        selectedIndex = resolveProcessSelection(
+            processSelectionExplicit, previousPid, previousIndex, orderedPids);
         selectedPid = processRows.at(selectedIndex).process.pid;
         ensureSelectionVisible();
     }
@@ -1306,8 +1253,7 @@ struct TopTui::Impl {
         for (const ProcessInfo &process : processes) {
             if (process.pid <= 0)
                 continue;
-            if (process.ppid <= 0 || process.ppid == process.pid
-                || !byPid.contains(process.ppid)) {
+            if (process.ppid <= 0 || process.ppid == process.pid || !byPid.contains(process.ppid)) {
                 roots.push_back(process.pid);
             } else {
                 children[process.ppid].push_back(process.pid);
@@ -1325,32 +1271,31 @@ struct TopTui::Impl {
         QSet<qint64> active;
         QHash<qint64, int> rowByPid;
 
-        std::function<void(qint64, int)> append =
-            [&](qint64 pid, int depth) {
-                if (active.contains(pid)) {
-                    const auto row = rowByPid.constFind(pid);
-                    if (row != rowByPid.constEnd())
-                        processRows[(*row)].cycle = true;
-                    return;
-                }
-                if (visited.contains(pid) || !byPid.contains(pid))
-                    return;
+        std::function<void(qint64, int)> append = [&](qint64 pid, int depth) {
+            if (active.contains(pid)) {
+                const auto row = rowByPid.constFind(pid);
+                if (row != rowByPid.constEnd())
+                    processRows[(*row)].cycle = true;
+                return;
+            }
+            if (visited.contains(pid) || !byPid.contains(pid))
+                return;
 
-                visited.insert(pid);
-                active.insert(pid);
-                const int rowIndex = static_cast<int>(processRows.size());
-                rowByPid.insert(pid, rowIndex);
-                processRows.push_back({byPid.value(pid), depth, false, false});
+            visited.insert(pid);
+            active.insert(pid);
+            const int rowIndex = static_cast<int>(processRows.size());
+            rowByPid.insert(pid, rowIndex);
+            processRows.push_back({byPid.value(pid), depth, false, false});
 
-                const QVector<qint64> processChildren = children.value(pid);
-                if (depth >= 63 && !processChildren.isEmpty()) {
-                    processRows[rowIndex].depthLimited = true;
-                } else {
-                    for (qint64 child : processChildren)
-                        append(child, depth + 1);
-                }
-                active.remove(pid);
-            };
+            const QVector<qint64> processChildren = children.value(pid);
+            if (depth >= 63 && !processChildren.isEmpty()) {
+                processRows[rowIndex].depthLimited = true;
+            } else {
+                for (qint64 child : processChildren)
+                    append(child, depth + 1);
+            }
+            active.remove(pid);
+        };
 
         for (qint64 root : std::as_const(roots))
             append(root, 0);
@@ -1371,10 +1316,8 @@ struct TopTui::Impl {
         if (processRows.isEmpty())
             return;
         processSelectionExplicit = true;
-        selectedIndex =
-            std::clamp(selectedIndex + delta,
-                       0,
-                       static_cast<int>(processRows.size()) - 1);
+        selectedIndex
+            = std::clamp(selectedIndex + delta, 0, static_cast<int>(processRows.size()) - 1);
         selectedPid = processRows.at(selectedIndex).process.pid;
         focusedPanel = Panel::Processes;
         ensureSelectionVisible();
@@ -1386,10 +1329,8 @@ struct TopTui::Impl {
             scrollOffset = selectedIndex;
         if (selectedIndex >= scrollOffset + processPageRows)
             scrollOffset = selectedIndex - processPageRows + 1;
-        const int maximumOffset =
-            std::max(0,
-                     static_cast<int>(processRows.size())
-                         - std::max(1, processPageRows));
+        const int maximumOffset
+            = std::max(0, static_cast<int>(processRows.size()) - std::max(1, processPageRows));
         scrollOffset = std::clamp(scrollOffset, 0, maximumOffset);
     }
 
@@ -1400,9 +1341,7 @@ struct TopTui::Impl {
         return &processRows.at(selectedIndex).process;
     }
 
-    void setStatus(const QString &message,
-                   Tone tone,
-                   int seconds = 3)
+    void setStatus(const QString &message, Tone tone, int seconds = 3)
     {
         statusMessage = message;
         statusTone = tone;
@@ -1425,7 +1364,7 @@ struct TopTui::Impl {
     int columns = 0;
     int refreshMinusColumn = -1;
     int refreshPlusColumn = -1;
-    Clock::time_point nextSample {};
+    Clock::time_point nextSample{};
 
     Panel focusedPanel = Panel::Processes;
     Modal modal = Modal::None;
@@ -1457,7 +1396,7 @@ struct TopTui::Impl {
 
     QString statusMessage;
     Tone statusTone = Tone::Normal;
-    Clock::time_point statusUntil {};
+    Clock::time_point statusUntil{};
 
     void draw();
     void drawHeader();
@@ -1506,9 +1445,8 @@ struct TopTui::Impl {
                               double maximum,
                               Tone tone);
     void drawSplitHistoryGraph(const Rect &plot);
-    CoreGridLayout drawCoreGrid(const Rect &plot,
-                                const QVector<int> &ids,
-                                const QVector<OptionalNumber> &values);
+    CoreGridLayout
+    drawCoreGrid(const Rect &plot, const QVector<int> &ids, const QVector<OptionalNumber> &values);
     void drawMetricRow(const Rect &rect,
                        int line,
                        const QString &label,
@@ -1529,9 +1467,8 @@ struct TopTui::Impl {
     void handleMouse();
     QStringList distroMark(const QString &distroId) const;
     QString meter(const OptionalNumber &percent, int width) const;
-    QString sparkline(const std::deque<double> &history,
-                      int width,
-                      double fixedMaximum = 0.0) const;
+    QString
+    sparkline(const std::deque<double> &history, int width, double fixedMaximum = 0.0) const;
     QString processLine(const ProcessRow &row, int width) const;
 };
 
@@ -1567,33 +1504,24 @@ void TopTui::Impl::draw()
 void TopTui::Impl::adjustRefreshInterval(int deltaMs)
 {
     const int previous = options.refreshIntervalMs;
-    options.refreshIntervalMs =
-        adjustedRefreshInterval(previous, deltaMs);
+    options.refreshIntervalMs = adjustedRefreshInterval(previous, deltaMs);
     if (options.refreshIntervalMs == previous) {
-        setStatus(
-            QStringLiteral("Refresh interval limit: %1 ms")
-                .arg(options.refreshIntervalMs),
-            Tone::Muted);
+        setStatus(QStringLiteral("Refresh interval limit: %1 ms").arg(options.refreshIntervalMs),
+                  Tone::Muted);
         return;
     }
 
     if (!paused) {
-        nextSample =
-            Clock::now()
-            + std::chrono::milliseconds(options.refreshIntervalMs);
+        nextSample = Clock::now() + std::chrono::milliseconds(options.refreshIntervalMs);
     }
-    setStatus(
-        QStringLiteral("Refresh interval: %1 ms")
-            .arg(options.refreshIntervalMs),
-        Tone::Primary);
+    setStatus(QStringLiteral("Refresh interval: %1 ms").arg(options.refreshIntervalMs),
+              Tone::Primary);
 }
 
 void TopTui::Impl::handleMouse()
 {
     MEVENT event{};
-    if (::getmouse(&event) != OK
-        || !(event.bstate & BUTTON1_CLICKED)
-        || event.y != 0) {
+    if (::getmouse(&event) != OK || !(event.bstate & BUTTON1_CLICKED) || event.y != 0) {
         return;
     }
 
@@ -1612,53 +1540,35 @@ void TopTui::Impl::drawHeader()
     refreshPlusColumn = -1;
 
     const SystemInfo &system = snapshot.system;
-    const QString host =
-        hasSnapshot && !system.hostName.isEmpty() ? system.hostName
-                                                  : QStringLiteral("Clavis");
-    const QString os =
-        hasSnapshot && !system.osName.isEmpty() ? system.osName
-                                                : QStringLiteral("system monitor");
-    const QString uptime =
-        hasSnapshot ? formatDuration(system.uptimeSeconds) : QStringLiteral("--");
-    const QString pausedState =
-        paused ? QStringLiteral("PAUSED  ") : QString{};
-    const QString intervalControl =
-        QStringLiteral("- %1 ms +").arg(options.refreshIntervalMs);
+    const QString host
+        = hasSnapshot && !system.hostName.isEmpty() ? system.hostName : QStringLiteral("Clavis");
+    const QString os = hasSnapshot && !system.osName.isEmpty() ? system.osName
+                                                               : QStringLiteral("system monitor");
+    const QString uptime
+        = hasSnapshot ? formatDuration(system.uptimeSeconds) : QStringLiteral("--");
+    const QString pausedState = paused ? QStringLiteral("PAUSED  ") : QString{};
+    const QString intervalControl = QStringLiteral("- %1 ms +").arg(options.refreshIntervalMs);
     const QString clock = QDateTime::currentDateTime().toString(QStringLiteral("HH:mm:ss"));
 
     QString line;
     QString left;
     if (columns >= 92) {
-        left = QStringLiteral(" CLAVIS TOP  %1 · %2  uptime %3")
-                   .arg(host, os, uptime);
+        left = QStringLiteral(" CLAVIS TOP  %1 · %2  uptime %3").arg(host, os, uptime);
     } else {
         left = QStringLiteral(" CLAVIS TOP  %1").arg(host);
     }
-    const QString right =
-        QStringLiteral("%1%2  %3 ")
-            .arg(pausedState, intervalControl, clock);
-    const int rightStart =
-        std::max(0, columns - displayWidth(right));
-    const int controlStart =
-        rightStart + displayWidth(pausedState);
+    const QString right = QStringLiteral("%1%2  %3 ").arg(pausedState, intervalControl, clock);
+    const int rightStart = std::max(0, columns - displayWidth(right));
+    const int controlStart = rightStart + displayWidth(pausedState);
     refreshMinusColumn = controlStart;
-    refreshPlusColumn =
-        controlStart
-        + displayWidth(
-            QStringLiteral("- %1 ms ").arg(options.refreshIntervalMs));
-    line = fitText(
-               left, std::max(0, columns - displayWidth(right)))
-        + right;
+    refreshPlusColumn
+        = controlStart + displayWidth(QStringLiteral("- %1 ms ").arg(options.refreshIntervalMs));
+    line = fitText(left, std::max(0, columns - displayWidth(right))) + right;
 
-    ::attrset(static_cast<int>(
-        theme->attribute(Tone::Selected, A_BOLD)));
+    ::attrset(static_cast<int>(theme->attribute(Tone::Selected, A_BOLD)));
     ::mvhline(0, 0, static_cast<chtype>(' '), columns);
-    putText(0,
-            0,
-            fitText(line, columns),
-            columns,
-            theme->attribute(Tone::Selected, A_BOLD),
-            !unicode);
+    putText(
+        0, 0, fitText(line, columns), columns, theme->attribute(Tone::Selected, A_BOLD), !unicode);
 }
 
 void TopTui::Impl::drawFooter()
@@ -1675,42 +1585,31 @@ void TopTui::Impl::drawFooter()
     } else {
         statusMessage.clear();
         if (columns >= 112) {
-            text = QStringLiteral(
-                " q Quit  ? Help  +/- Interval  Tab Panel  g Graph"
-                "  [/] Cores  j/k Move"
-                "  PgUp/PgDn Focused page  / Filter  s Sort  t Tree  p Pause"
-                "  Enter Details  K Signal");
+            text = QStringLiteral(" q Quit  ? Help  +/- Interval  Tab Panel  g Graph"
+                                  "  [/] Cores  j/k Move"
+                                  "  PgUp/PgDn Focused page  / Filter  s Sort  t Tree  p Pause"
+                                  "  Enter Details  K Signal");
         } else if (columns >= 76) {
-            text = QStringLiteral(
-                " q Quit  ? Help  +/- Rate  Tab Panel  g Graph  PgUp/PgDn Page"
-                "  j/k Move  / Filter  p Pause");
+            text = QStringLiteral(" q Quit  ? Help  +/- Rate  Tab Panel  g Graph  PgUp/PgDn Page"
+                                  "  j/k Move  / Filter  p Pause");
         } else {
-            text = QStringLiteral(
-                " q Quit  ? Help  +/- Interval  g Graph  [/] Cores  j/k Move");
+            text = QStringLiteral(" q Quit  ? Help  +/- Interval  g Graph  [/] Cores  j/k Move");
         }
         if (hasSnapshot && !snapshot.errors.isEmpty()) {
-            text += QStringLiteral("  [%1 unavailable]")
-                        .arg(snapshot.errors.size());
+            text += QStringLiteral("  [%1 unavailable]").arg(snapshot.errors.size());
             tone = Tone::Warning;
         }
     }
 
     ::attrset(static_cast<int>(theme->attribute(tone)));
     ::mvhline(rows - 1, 0, static_cast<chtype>(' '), columns);
-    putText(rows - 1,
-            0,
-            fitText(text, columns),
-            columns,
-            theme->attribute(tone),
-            !unicode);
+    putText(rows - 1, 0, fitText(text, columns), columns, theme->attribute(tone), !unicode);
 }
 
 void TopTui::Impl::drawTooSmall()
 {
-    const QString size =
-        QStringLiteral("Terminal too small: %1 x %2").arg(columns).arg(rows);
-    const QString hint =
-        QStringLiteral("Resize to at least 54 x 16. Press q to quit.");
+    const QString size = QStringLiteral("Terminal too small: %1 x %2").arg(columns).arg(rows);
+    const QString hint = QStringLiteral("Resize to at least 54 x 16. Press q to quit.");
     const int center = std::max(1, rows / 2);
     putText(center - 1,
             std::max(0, (columns - displayWidth(size)) / 2),
@@ -1729,31 +1628,22 @@ void TopTui::Impl::drawTooSmall()
 void TopTui::Impl::drawWide(const Rect &content)
 {
     const int gap = 1;
-    const int computeHeight =
-        std::clamp(static_cast<int>(std::lround(content.height * 0.38)),
-                   14,
-                   std::max(12, content.height - 20));
+    const int computeHeight = std::clamp(static_cast<int>(std::lround(content.height * 0.38)),
+                                         14,
+                                         std::max(12, content.height - 20));
     drawCompute({content.x, content.y, content.width, computeHeight});
 
     const int lowerY = content.y + computeHeight + gap;
-    const int lowerHeight =
-        content.y + content.height - lowerY;
-    const int leftWidth =
-        std::clamp(content.width * 45 / 100,
-                   58,
-                   std::max(58, content.width - 58 - gap));
+    const int lowerHeight = content.y + content.height - lowerY;
+    const int leftWidth
+        = std::clamp(content.width * 45 / 100, 58, std::max(58, content.width - 58 - gap));
     const int rightX = content.x + leftWidth + gap;
-    const int rightWidth =
-        content.x + content.width - rightX;
+    const int rightWidth = content.x + content.width - rightX;
 
-    const int infoHeight =
-        std::clamp(static_cast<int>(std::lround(lowerHeight * 0.36)),
-                   9,
-                   std::max(9, lowerHeight - 9));
-    const int systemWidth =
-        std::clamp(leftWidth * 48 / 100,
-                   32,
-                   std::max(32, leftWidth - 28 - gap));
+    const int infoHeight = std::clamp(
+        static_cast<int>(std::lround(lowerHeight * 0.36)), 9, std::max(9, lowerHeight - 9));
+    const int systemWidth
+        = std::clamp(leftWidth * 48 / 100, 32, std::max(32, leftWidth - 28 - gap));
     drawSystem({
         content.x,
         lowerY,
@@ -1785,20 +1675,14 @@ void TopTui::Impl::drawWide(const Rect &content)
 void TopTui::Impl::drawMedium(const Rect &content)
 {
     const int gap = 1;
-    const int leftWidth =
-        std::clamp(content.width * 40 / 100,
-                   36,
-                   std::max(36, content.width - 48 - gap));
+    const int leftWidth
+        = std::clamp(content.width * 40 / 100, 36, std::max(36, content.width - 48 - gap));
     const int rightX = content.x + leftWidth + gap;
-    const int rightWidth =
-        content.x + content.width - rightX;
+    const int rightWidth = content.x + content.width - rightX;
 
-    const int systemHeight =
-        std::clamp(content.height / 3, 7, 9);
-    const int resourcesHeight =
-        std::clamp(content.height / 4, 6, 8);
-    const int networkY =
-        content.y + systemHeight + gap + resourcesHeight + gap;
+    const int systemHeight = std::clamp(content.height / 3, 7, 9);
+    const int resourcesHeight = std::clamp(content.height / 4, 6, 8);
+    const int networkY = content.y + systemHeight + gap + resourcesHeight + gap;
 
     drawSystem({
         content.x,
@@ -1819,10 +1703,8 @@ void TopTui::Impl::drawMedium(const Rect &content)
         content.y + content.height - networkY,
     });
 
-    const int computeHeight =
-        std::clamp(static_cast<int>(std::lround(content.height * 0.50)),
-                   12,
-                   std::max(10, content.height - 8));
+    const int computeHeight = std::clamp(
+        static_cast<int>(std::lround(content.height * 0.50)), 12, std::max(10, content.height - 8));
     drawCompute({
         rightX,
         content.y,
@@ -1847,10 +1729,8 @@ void TopTui::Impl::drawCompact(const Rect &content)
     }
 
     const int remaining = content.y + content.height - cursor;
-    const int detailHeight =
-        std::clamp(remaining / 2, 6, std::max(6, remaining - 5));
-    Panel detailPanel =
-        focusedPanel == Panel::Processes ? Panel::System : focusedPanel;
+    const int detailHeight = std::clamp(remaining / 2, 6, std::max(6, remaining - 5));
+    Panel detailPanel = focusedPanel == Panel::Processes ? Panel::System : focusedPanel;
     const Rect detail{content.x, cursor, content.width, detailHeight};
     drawPanelFor(detailPanel, detail);
     cursor += detail.height + 1;
@@ -1865,39 +1745,34 @@ void TopTui::Impl::drawCompact(const Rect &content)
 
 void TopTui::Impl::drawOverview(const Rect &rect)
 {
-    drawBox(rect,
-            QStringLiteral("Overview · Tab: %1").arg(panelName(focusedPanel)),
-            false);
+    drawBox(rect, QStringLiteral("Overview · Tab: %1").arg(panelName(focusedPanel)), false);
     if (!hasSnapshot) {
         writeInside(rect, 0, QStringLiteral("Waiting for system data..."), Tone::Muted);
         return;
     }
 
-    const OptionalNumber gpuUsage =
-        snapshot.gpus.isEmpty() ? OptionalNumber{}
-                                : snapshot.gpus.first().utilizationPercent;
+    const OptionalNumber gpuUsage
+        = snapshot.gpus.isEmpty() ? OptionalNumber{} : snapshot.gpus.first().utilizationPercent;
     QString diskUsage = QStringLiteral("--");
     if (!snapshot.disks.isEmpty())
         diskUsage = formatPercent(snapshot.disks.first().usagePercent, 0);
 
-    writeInside(
-        rect,
-        0,
-        QStringLiteral("CPU %1   RAM %2   GPU %3   Disk %4")
-            .arg(formatPercent(snapshot.cpu.usagePercent),
-                 formatPercent(snapshot.memory.usagePercent),
-                 formatPercent(gpuUsage),
-                 diskUsage),
-        Tone::Primary,
-        A_BOLD);
-    writeInside(
-        rect,
-        1,
-        QStringLiteral("Net %1 down · %2 up   panel %3")
-            .arg(formatRate(snapshot.network.downloadBytesPerSecond),
-                 formatRate(snapshot.network.uploadBytesPerSecond),
-                 panelName(focusedPanel)),
-        Tone::Muted);
+    writeInside(rect,
+                0,
+                QStringLiteral("CPU %1   RAM %2   GPU %3   Disk %4")
+                    .arg(formatPercent(snapshot.cpu.usagePercent),
+                         formatPercent(snapshot.memory.usagePercent),
+                         formatPercent(gpuUsage),
+                         diskUsage),
+                Tone::Primary,
+                A_BOLD);
+    writeInside(rect,
+                1,
+                QStringLiteral("Net %1 down · %2 up   panel %3")
+                    .arg(formatRate(snapshot.network.downloadBytesPerSecond),
+                         formatRate(snapshot.network.uploadBytesPerSecond),
+                         panelName(focusedPanel)),
+                Tone::Muted);
 }
 
 void TopTui::Impl::drawPanelFor(Panel panel, const Rect &rect)
@@ -1935,58 +1810,37 @@ void TopTui::Impl::drawResourcePane(const Rect &rect)
     drawResources(rect);
 }
 
-void TopTui::Impl::drawBox(const Rect &rect,
-                           const QString &title,
-                           bool focused)
+void TopTui::Impl::drawBox(const Rect &rect, const QString &title, bool focused)
 {
     if (rect.width < 2 || rect.height < 2)
         return;
 
     clearInside(rect);
-    const attr_t border =
-        theme->attribute(focused ? Tone::Primary : Tone::Outline,
-                         focused ? A_BOLD : A_NORMAL);
-    const chtype horizontal =
-        unicode ? ACS_HLINE : static_cast<chtype>('-');
-    const chtype vertical =
-        unicode ? ACS_VLINE : static_cast<chtype>('|');
-    const chtype upperLeft =
-        unicode ? ACS_ULCORNER : static_cast<chtype>('+');
-    const chtype upperRight =
-        unicode ? ACS_URCORNER : static_cast<chtype>('+');
-    const chtype lowerLeft =
-        unicode ? ACS_LLCORNER : static_cast<chtype>('+');
-    const chtype lowerRight =
-        unicode ? ACS_LRCORNER : static_cast<chtype>('+');
+    const attr_t border
+        = theme->attribute(focused ? Tone::Primary : Tone::Outline, focused ? A_BOLD : A_NORMAL);
+    const chtype horizontal = unicode ? ACS_HLINE : static_cast<chtype>('-');
+    const chtype vertical = unicode ? ACS_VLINE : static_cast<chtype>('|');
+    const chtype upperLeft = unicode ? ACS_ULCORNER : static_cast<chtype>('+');
+    const chtype upperRight = unicode ? ACS_URCORNER : static_cast<chtype>('+');
+    const chtype lowerLeft = unicode ? ACS_LLCORNER : static_cast<chtype>('+');
+    const chtype lowerRight = unicode ? ACS_LRCORNER : static_cast<chtype>('+');
 
     ::attrset(static_cast<int>(border));
     ::mvhline(rect.y, rect.x + 1, horizontal, std::max(0, rect.width - 2));
-    ::mvhline(rect.y + rect.height - 1,
-              rect.x + 1,
-              horizontal,
-              std::max(0, rect.width - 2));
-    ::mvvline(rect.y + 1,
-              rect.x,
-              vertical,
-              std::max(0, rect.height - 2));
-    ::mvvline(rect.y + 1,
-              rect.x + rect.width - 1,
-              vertical,
-              std::max(0, rect.height - 2));
+    ::mvhline(rect.y + rect.height - 1, rect.x + 1, horizontal, std::max(0, rect.width - 2));
+    ::mvvline(rect.y + 1, rect.x, vertical, std::max(0, rect.height - 2));
+    ::mvvline(rect.y + 1, rect.x + rect.width - 1, vertical, std::max(0, rect.height - 2));
     ::mvaddch(rect.y, rect.x, upperLeft);
     ::mvaddch(rect.y, rect.x + rect.width - 1, upperRight);
     ::mvaddch(rect.y + rect.height - 1, rect.x, lowerLeft);
-    ::mvaddch(rect.y + rect.height - 1,
-              rect.x + rect.width - 1,
-              lowerRight);
+    ::mvaddch(rect.y + rect.height - 1, rect.x + rect.width - 1, lowerRight);
 
     const QString label = QStringLiteral(" %1 ").arg(title);
     putText(rect.y,
             rect.x + 2,
             label,
             std::max(0, rect.width - 4),
-            theme->attribute(focused ? Tone::Primary : Tone::Muted,
-                             focused ? A_BOLD : A_NORMAL),
+            theme->attribute(focused ? Tone::Primary : Tone::Muted, focused ? A_BOLD : A_NORMAL),
             !unicode);
 }
 
@@ -1997,19 +1851,13 @@ void TopTui::Impl::clearInside(const Rect &rect, Tone tone)
     ::attrset(static_cast<int>(theme->attribute(tone)));
     for (int line = 1; line < rect.height - 1; ++line) {
         if (rect.y + line >= 0 && rect.y + line < rows)
-            ::mvhline(rect.y + line,
-                      rect.x + 1,
-                      static_cast<chtype>(' '),
-                      std::max(0, rect.width - 2));
+            ::mvhline(
+                rect.y + line, rect.x + 1, static_cast<chtype>(' '), std::max(0, rect.width - 2));
     }
 }
 
-void TopTui::Impl::writeInside(const Rect &rect,
-                               int line,
-                               const QString &text,
-                               Tone tone,
-                               attr_t extra,
-                               bool fill)
+void TopTui::Impl::writeInside(
+    const Rect &rect, int line, const QString &text, Tone tone, attr_t extra, bool fill)
 {
     if (line < 0 || line >= rect.height - 2)
         return;
@@ -2022,12 +1870,8 @@ void TopTui::Impl::writeInside(const Rect &rect,
             !unicode);
 }
 
-void TopTui::Impl::writeAtInside(const Rect &rect,
-                                 int line,
-                                 int column,
-                                 const QString &text,
-                                 Tone tone,
-                                 attr_t extra)
+void TopTui::Impl::writeAtInside(
+    const Rect &rect, int line, int column, const QString &text, Tone tone, attr_t extra)
 {
     if (line < 0 || line >= rect.height - 2 || column < 0)
         return;
@@ -2061,18 +1905,15 @@ void TopTui::Impl::drawMetricRow(const Rect &rect,
     constexpr int gapCount = 3;
     labelWidth = std::clamp(labelWidth, 1, innerWidth);
     detailWidth = std::clamp(detailWidth, 0, innerWidth);
-    int meterWidth =
-        innerWidth - labelWidth - percentWidth - detailWidth - gapCount;
+    int meterWidth = innerWidth - labelWidth - percentWidth - detailWidth - gapCount;
     if (meterWidth < 3) {
         detailWidth = 0;
-        meterWidth =
-            innerWidth - labelWidth - percentWidth - 2;
+        meterWidth = innerWidth - labelWidth - percentWidth - 2;
     }
     if (meterWidth < 1) {
         writeInside(rect,
                     line,
-                    QStringLiteral("%1 %2")
-                        .arg(label, formatPercent(percent, 0)),
+                    QStringLiteral("%1 %2").arg(label, formatPercent(percent, 0)),
                     valueTone,
                     A_BOLD,
                     true);
@@ -2088,12 +1929,8 @@ void TopTui::Impl::drawMetricRow(const Rect &rect,
             theme->attribute(Tone::Muted, A_BOLD),
             !unicode);
     column += labelWidth + 1;
-    putText(row,
-            column,
-            meter(percent, meterWidth),
-            meterWidth,
-            theme->attribute(meterTone),
-            !unicode);
+    putText(
+        row, column, meter(percent, meterWidth), meterWidth, theme->attribute(meterTone), !unicode);
     column += meterWidth + 1;
     putText(row,
             column,
@@ -2132,12 +1969,8 @@ void TopTui::Impl::drawHistoryGraph(const Rect &plot,
         samples.reserve(plot.width);
         const int count = static_cast<int>(history.size());
         for (int column = 0; column < plot.width; ++column) {
-            int begin =
-                static_cast<int>((static_cast<long long>(column) * count)
-                                 / plot.width);
-            int end =
-                static_cast<int>((static_cast<long long>(column + 1) * count)
-                                 / plot.width);
+            int begin = static_cast<int>((static_cast<long long>(column) * count) / plot.width);
+            int end = static_cast<int>((static_cast<long long>(column + 1) * count) / plot.width);
             end = std::clamp(end, begin + 1, count);
 
             double aggregated = peakBuckets ? 0.0 : 0.0;
@@ -2164,15 +1997,11 @@ void TopTui::Impl::drawHistoryGraph(const Rect &plot,
     const QString lowerLevels = QStringLiteral(" ▁▂▃▄▅▆▇█");
     const QString upperLevels = QStringLiteral(" ▔▔▀▀▀███");
     for (int column = 0; column < static_cast<int>(samples.size()); ++column) {
-        const double ratio =
-            std::clamp(samples.at(column) / maximum, 0.0, 1.0);
+        const double ratio = std::clamp(samples.at(column) / maximum, 0.0, 1.0);
         const double units = ratio * plot.height * 8.0;
 
         for (int layer = 0; layer < plot.height; ++layer) {
-            const int level =
-                std::clamp(static_cast<int>(std::lround(units - layer * 8.0)),
-                           0,
-                           8);
+            const int level = std::clamp(static_cast<int>(std::lround(units - layer * 8.0)), 0, 8);
             if (level <= 0)
                 continue;
 
@@ -2181,8 +2010,7 @@ void TopTui::Impl::drawHistoryGraph(const Rect &plot,
             if (unicode) {
                 glyph = QString((invert ? upperLevels : lowerLevels).at(level));
             } else {
-                glyph = level >= 4 ? QStringLiteral("#")
-                                   : QStringLiteral(".");
+                glyph = level >= 4 ? QStringLiteral("#") : QStringLiteral(".");
             }
             putText(plot.y + row,
                     plot.x + startColumn + column,
@@ -2202,14 +2030,11 @@ void TopTui::Impl::drawLineHistoryGraph(const Rect &plot,
     if (plot.width <= 0 || plot.height <= 0 || history.empty())
         return;
 
-    const LineRaster raster =
-        rasterizeLine(history, plot.width, plot.height, maximum);
+    const LineRaster raster = rasterizeLine(history, plot.width, plot.height, maximum);
     const auto glyphFor = [this](unsigned char connection, bool point) {
         if (!unicode) {
-            const bool horizontal =
-                connection & (ConnectLeft | ConnectRight);
-            const bool vertical =
-                connection & (ConnectUp | ConnectDown);
+            const bool horizontal = connection & (ConnectLeft | ConnectRight);
+            const bool vertical = connection & (ConnectUp | ConnectDown);
             if (horizontal && vertical)
                 return static_cast<chtype>('+');
             if (vertical)
@@ -2249,8 +2074,7 @@ void TopTui::Impl::drawLineHistoryGraph(const Rect &plot,
         case ConnectRight:
             return static_cast<chtype>(ACS_HLINE);
         default:
-            return point ? static_cast<chtype>(ACS_HLINE)
-                         : static_cast<chtype>(' ');
+            return point ? static_cast<chtype>(ACS_HLINE) : static_cast<chtype>(' ');
         }
     };
 
@@ -2261,9 +2085,7 @@ void TopTui::Impl::drawLineHistoryGraph(const Rect &plot,
             const bool point = raster.pointAt(x, y);
             if (connection == ConnectNone && !point)
                 continue;
-            ::mvaddch(plot.y + y,
-                      plot.x + x,
-                      glyphFor(connection, point));
+            ::mvaddch(plot.y + y, plot.x + x, glyphFor(connection, point));
         }
     }
 }
@@ -2273,8 +2095,7 @@ void TopTui::Impl::drawSplitHistoryGraph(const Rect &plot)
     if (plot.width <= 0 || plot.height <= 0)
         return;
     if (plot.height < 3) {
-        drawHistoryGraph(
-            plot, downloadHistory, 0.0, Tone::Primary, false, true);
+        drawHistoryGraph(plot, downloadHistory, 0.0, Tone::Primary, false, true);
         return;
     }
 
@@ -2282,28 +2103,14 @@ void TopTui::Impl::drawSplitHistoryGraph(const Rect &plot)
     const int axisY = plot.y + topHeight;
     const int bottomHeight = plot.height - topHeight - 1;
     drawHistoryGraph(
-        {plot.x, plot.y, plot.width, topHeight},
-        downloadHistory,
-        0.0,
-        Tone::Primary,
-        false,
-        true);
+        {plot.x, plot.y, plot.width, topHeight}, downloadHistory, 0.0, Tone::Primary, false, true);
     drawHistoryGraph(
-        {plot.x, axisY + 1, plot.width, bottomHeight},
-        uploadHistory,
-        0.0,
-        Tone::Good,
-        true,
-        true);
+        {plot.x, axisY + 1, plot.width, bottomHeight}, uploadHistory, 0.0, Tone::Good, true, true);
 
     ::attrset(static_cast<int>(theme->attribute(Tone::Outline)));
-    ::mvhline(axisY,
-              plot.x,
-              unicode ? ACS_HLINE : static_cast<chtype>('-'),
-              plot.width);
-    const QString label =
-        unicode ? QStringLiteral(" ↓ download  ↑ upload ")
-                : QStringLiteral(" D download  U upload ");
+    ::mvhline(axisY, plot.x, unicode ? ACS_HLINE : static_cast<chtype>('-'), plot.width);
+    const QString label = unicode ? QStringLiteral(" ↓ download  ↑ upload ")
+                                  : QStringLiteral(" D download  U upload ");
     putText(axisY,
             plot.x + 1,
             label,
@@ -2312,22 +2119,16 @@ void TopTui::Impl::drawSplitHistoryGraph(const Rect &plot)
             !unicode);
 }
 
-CoreGridLayout TopTui::Impl::drawCoreGrid(
-    const Rect &plot,
-    const QVector<int> &ids,
-    const QVector<OptionalNumber> &values)
+CoreGridLayout TopTui::Impl::drawCoreGrid(const Rect &plot,
+                                          const QVector<int> &ids,
+                                          const QVector<OptionalNumber> &values)
 {
-    int largestCoreId =
-        std::max(0, static_cast<int>(values.size()) - 1);
+    int largestCoreId = std::max(0, static_cast<int>(values.size()) - 1);
     for (const int id : ids)
         largestCoreId = std::max(largestCoreId, id);
 
-    CoreGridLayout layout =
-        calculateCoreGridLayout(plot.width,
-                                plot.height,
-                                values.size(),
-                                largestCoreId,
-                                corePage);
+    CoreGridLayout layout
+        = calculateCoreGridLayout(plot.width, plot.height, values.size(), largestCoreId, corePage);
     corePage = layout.page;
     corePageCount = std::max(1, layout.pageCount);
     if (layout.visibleCount <= 0)
@@ -2339,15 +2140,10 @@ CoreGridLayout TopTui::Impl::drawCoreGrid(
         const int row = offset / layout.columns;
         const int columnIndex = offset % layout.columns;
         const int cellX = plot.x + columnIndex * layout.cellWidth;
-        const int renderedWidth =
-            std::max(1, layout.cellWidth - 1);
+        const int renderedWidth = std::max(1, layout.cellWidth - 1);
         const int coreId = index < ids.size() ? ids.at(index) : index;
-        const QString label =
-            QStringLiteral("C%1")
-                .arg(coreId,
-                     layout.labelWidth - 1,
-                     10,
-                     QLatin1Char('0'));
+        const QString label
+            = QStringLiteral("C%1").arg(coreId, layout.labelWidth - 1, 10, QLatin1Char('0'));
         const QString percent = formatPercent(values.at(index), 0);
 
         putText(plot.y + row,
@@ -2378,9 +2174,7 @@ CoreGridLayout TopTui::Impl::drawCoreGrid(
         putText(plot.y + row,
                 cursor,
                 fitText(percent, percentWidth, true),
-                std::max(0,
-                         std::min(percentWidth,
-                                  cellX + renderedWidth - cursor)),
+                std::max(0, std::min(percentWidth, cellX + renderedWidth - cursor)),
                 theme->attribute(valueTone, A_BOLD),
                 !unicode);
     }
@@ -2390,8 +2184,7 @@ CoreGridLayout TopTui::Impl::drawCoreGrid(
 QStringList TopTui::Impl::distroMark(const QString &distroId) const
 {
     const QString id = distroId.toLower();
-    if (id.contains(QStringLiteral("arch"))
-        || id.contains(QStringLiteral("manjaro"))
+    if (id.contains(QStringLiteral("arch")) || id.contains(QStringLiteral("manjaro"))
         || id.contains(QStringLiteral("endeavour"))) {
         return {
             QStringLiteral("      /\\"),
@@ -2403,8 +2196,7 @@ QStringList TopTui::Impl::distroMark(const QString &distroId) const
             QStringLiteral("/_-''    ''-_\\"),
         };
     }
-    if (id.contains(QStringLiteral("nixos"))
-        || id == QStringLiteral("nix")) {
+    if (id.contains(QStringLiteral("nixos")) || id == QStringLiteral("nix")) {
         return {
             QStringLiteral("  \\\\  //  "),
             QStringLiteral(" ==\\\\//== "),
@@ -2436,9 +2228,8 @@ QString TopTui::Impl::meter(const OptionalNumber &percent, int width) const
     return borderlessMeter(percent, width, unicode);
 }
 
-QString TopTui::Impl::sparkline(const std::deque<double> &history,
-                                int width,
-                                double fixedMaximum) const
+QString
+TopTui::Impl::sparkline(const std::deque<double> &history, int width, double fixedMaximum) const
 {
     if (width <= 0 || history.empty())
         return {};
@@ -2452,34 +2243,26 @@ QString TopTui::Impl::sparkline(const std::deque<double> &history,
     }
     maximum = std::max(maximum, 0.000001);
 
-    const QString levels =
-        unicode ? QStringLiteral("▁▂▃▄▅▆▇█")
-                : QStringLiteral(".:-=+*#%");
+    const QString levels = unicode ? QStringLiteral("▁▂▃▄▅▆▇█") : QStringLiteral(".:-=+*#%");
     QString result;
     result.reserve(count);
     for (auto iterator = begin; iterator != history.end(); ++iterator) {
         const double ratio = std::clamp(*iterator / maximum, 0.0, 1.0);
-        const int index =
-            std::clamp(static_cast<int>(std::lround(
-                           ratio
-                           * static_cast<double>(levels.size() - 1))),
-                       0,
-                       static_cast<int>(levels.size()) - 1);
+        const int index = std::clamp(
+            static_cast<int>(std::lround(ratio * static_cast<double>(levels.size() - 1))),
+            0,
+            static_cast<int>(levels.size()) - 1);
         result.append(levels.at(index));
     }
-    return QString(std::max(0, width - displayWidth(result)), QLatin1Char(' '))
-        + result;
+    return QString(std::max(0, width - displayWidth(result)), QLatin1Char(' ')) + result;
 }
 
 void TopTui::Impl::drawSystem(const Rect &rect)
 {
-    const QString distro =
-        hasSnapshot && !snapshot.system.distroId.isEmpty()
-        ? snapshot.system.distroId
-        : QStringLiteral("linux");
-    drawBox(rect,
-            QStringLiteral("System · %1").arg(distro),
-            focusedPanel == Panel::System);
+    const QString distro = hasSnapshot && !snapshot.system.distroId.isEmpty()
+                               ? snapshot.system.distroId
+                               : QStringLiteral("linux");
+    drawBox(rect, QStringLiteral("System · %1").arg(distro), focusedPanel == Panel::System);
     if (!hasSnapshot || !snapshot.system.available) {
         writeInside(rect,
                     0,
@@ -2494,73 +2277,59 @@ void TopTui::Impl::drawSystem(const Rect &rect)
     int markWidth = 0;
     for (const QString &line : mark)
         markWidth = std::max(markWidth, displayWidth(line));
-    const bool showMark =
-        rect.width >= 36 && rect.height >= 7
-        && markWidth + 15 < rect.width - 2;
+    const bool showMark = rect.width >= 36 && rect.height >= 7 && markWidth + 15 < rect.width - 2;
     const int textColumn = showMark ? markWidth + 2 : 0;
 
     if (showMark) {
-        const int visibleLines =
-            std::min(static_cast<int>(mark.size()),
-                     std::max(0, rect.height - 2));
+        const int visibleLines
+            = std::min(static_cast<int>(mark.size()), std::max(0, rect.height - 2));
         for (int line = 0; line < visibleLines; ++line) {
-            writeAtInside(
-                rect, line, 0, mark.at(line), Tone::Primary, A_BOLD);
+            writeAtInside(rect, line, 0, mark.at(line), Tone::Primary, A_BOLD);
         }
     }
 
     int line = 0;
-    writeAtInside(
-        rect,
-        line++,
-        textColumn,
-        system.osName.isEmpty() ? system.distroId : system.osName,
-        Tone::Primary,
-        A_BOLD);
     writeAtInside(rect,
                   line++,
                   textColumn,
-                  system.hostName.isEmpty()
-                      ? QStringLiteral("unknown host")
-                      : system.hostName,
+                  system.osName.isEmpty() ? system.distroId : system.osName,
+                  Tone::Primary,
+                  A_BOLD);
+    writeAtInside(rect,
+                  line++,
+                  textColumn,
+                  system.hostName.isEmpty() ? QStringLiteral("unknown host") : system.hostName,
                   Tone::Normal);
     writeAtInside(rect,
                   line++,
                   textColumn,
-                  QStringLiteral("%1 · %2")
-                      .arg(system.kernel, system.architecture),
+                  QStringLiteral("%1 · %2").arg(system.kernel, system.architecture),
                   Tone::Muted);
     writeAtInside(rect,
                   line++,
                   textColumn,
-                  QStringLiteral("up %1")
-                      .arg(formatDuration(system.uptimeSeconds)),
+                  QStringLiteral("up %1").arg(formatDuration(system.uptimeSeconds)),
                   Tone::Normal);
-    writeAtInside(rect,
-                  line++,
-                  textColumn,
-                  QStringLiteral("%1C / %2T")
-                      .arg(system.physicalCoreCount)
-                      .arg(system.logicalCpuCount),
-                  Tone::Normal);
+    writeAtInside(
+        rect,
+        line++,
+        textColumn,
+        QStringLiteral("%1C / %2T").arg(system.physicalCoreCount).arg(system.logicalCpuCount),
+        Tone::Normal);
 
     if (line < rect.height - 2) {
-        const QString device =
-            (system.vendor + QLatin1Char(' ')
-             + (system.productName.isEmpty()
-                    ? system.boardName
-                    : system.productName))
-                .trimmed();
+        const QString device
+            = (system.vendor + QLatin1Char(' ')
+               + (system.productName.isEmpty() ? system.boardName : system.productName))
+                  .trimmed();
         if (!device.isEmpty()) {
-            writeAtInside(
-                rect, line, textColumn, device, Tone::Muted);
+            writeAtInside(rect, line, textColumn, device, Tone::Muted);
         } else if (!snapshot.errors.isEmpty()) {
             const Error &last = snapshot.errors.last();
             writeAtInside(rect,
                           line,
                           textColumn,
-                          QStringLiteral("%1 unavailable")
-                              .arg(last.module),
+                          QStringLiteral("%1 unavailable").arg(last.module),
                           Tone::Warning);
         }
     }
@@ -2572,9 +2341,7 @@ QString TopTui::Impl::gpuKey(const GpuInfo &gpu, int index) const
         return QStringLiteral("pci:") + gpu.pciId;
     if (!gpu.id.isEmpty())
         return QStringLiteral("id:") + gpu.id;
-    return QStringLiteral("gpu:%1:%2:%3")
-        .arg(gpu.vendor, gpu.name)
-        .arg(index);
+    return QStringLiteral("gpu:%1:%2:%3").arg(gpu.vendor, gpu.name).arg(index);
 }
 
 QVector<QString> TopTui::Impl::graphGpuKeys() const
@@ -2607,10 +2374,8 @@ void TopTui::Impl::cycleComputeGraph()
         const int currentGpu = keys.indexOf(computeGraphGpuKey);
         currentSource = currentGpu >= 0 ? currentGpu + 1 : 0;
     }
-    const int nextSource =
-        nextGraphSource(currentSource, keys.size());
-    computeGraphGpuKey =
-        nextSource == 0 ? QString{} : keys.at(nextSource - 1);
+    const int nextSource = nextGraphSource(currentSource, keys.size());
+    computeGraphGpuKey = nextSource == 0 ? QString{} : keys.at(nextSource - 1);
     focusedPanel = Panel::Compute;
 
     if (computeGraphGpuKey.isEmpty()) {
@@ -2619,13 +2384,9 @@ void TopTui::Impl::cycleComputeGraph()
     }
 
     const GpuInfo *gpu = gpuForKey(computeGraphGpuKey);
-    const QString name =
-        gpu && !gpu->name.isEmpty() ? gpu->name : QStringLiteral("GPU");
-    setStatus(
-        QStringLiteral("Compute graph: GPU %1 · %2")
-            .arg(nextSource - 1)
-            .arg(name),
-        Tone::Good);
+    const QString name = gpu && !gpu->name.isEmpty() ? gpu->name : QStringLiteral("GPU");
+    setStatus(QStringLiteral("Compute graph: GPU %1 · %2").arg(nextSource - 1).arg(name),
+              Tone::Good);
 }
 
 void TopTui::Impl::changeFocusedPage(int direction)
@@ -2638,17 +2399,14 @@ void TopTui::Impl::changeFocusedPage(int direction)
         changeDiskPage(direction);
         return;
     case Panel::Processes:
-        moveSelection(
-            direction * std::max(1, processPageRows));
+        moveSelection(direction * std::max(1, processPageRows));
         return;
     case Panel::System:
     case Panel::Memory:
     case Panel::Network:
     case Panel::Count:
-        setStatus(
-            QStringLiteral("%1 panel has no paged content")
-                .arg(panelName(focusedPanel)),
-            Tone::Muted);
+        setStatus(QStringLiteral("%1 panel has no paged content").arg(panelName(focusedPanel)),
+                  Tone::Muted);
         return;
     }
 }
@@ -2660,14 +2418,10 @@ void TopTui::Impl::changeCorePage(int direction)
         setStatus(QStringLiteral("All CPU cores fit on one page"), Tone::Muted);
         return;
     }
-    corePage =
-        std::clamp(corePage + direction, 0, corePageCount - 1);
+    corePage = std::clamp(corePage + direction, 0, corePageCount - 1);
     focusedPanel = Panel::Compute;
-    setStatus(
-        QStringLiteral("CPU core page %1/%2")
-            .arg(corePage + 1)
-            .arg(corePageCount),
-        Tone::Primary);
+    setStatus(QStringLiteral("CPU core page %1/%2").arg(corePage + 1).arg(corePageCount),
+              Tone::Primary);
 }
 
 void TopTui::Impl::changeDiskPage(int direction)
@@ -2677,14 +2431,10 @@ void TopTui::Impl::changeDiskPage(int direction)
         setStatus(QStringLiteral("All disks fit on one page"), Tone::Muted);
         return;
     }
-    diskPage =
-        std::clamp(diskPage + direction, 0, diskPageCount - 1);
+    diskPage = std::clamp(diskPage + direction, 0, diskPageCount - 1);
     focusedPanel = Panel::Disk;
-    setStatus(
-        QStringLiteral("Disk page %1/%2")
-            .arg(diskPage + 1)
-            .arg(diskPageCount),
-        Tone::Primary);
+    setStatus(QStringLiteral("Disk page %1/%2").arg(diskPage + 1).arg(diskPageCount),
+              Tone::Primary);
 }
 
 void TopTui::Impl::drawCompute(const Rect &rect)
@@ -2702,14 +2452,10 @@ void TopTui::Impl::drawCompute(const Rect &rect)
         std::max(0, remainingHeight),
     };
     Rect coreRect{};
-    const bool sideBySide =
-        innerWidth >= 72 && remainingHeight >= 5
-        && hasSnapshot && !snapshot.cpu.coreUsagePercent.isEmpty();
+    const bool sideBySide = innerWidth >= 72 && remainingHeight >= 5 && hasSnapshot
+                            && !snapshot.cpu.coreUsagePercent.isEmpty();
     if (sideBySide) {
-        const int coreWidth =
-            std::clamp(innerWidth * 32 / 100,
-                       30,
-                       std::min(80, innerWidth - 32));
+        const int coreWidth = std::clamp(innerWidth * 32 / 100, 30, std::min(80, innerWidth - 32));
         const int graphWidth = innerWidth - coreWidth - 1;
         graphRect.width = graphWidth;
         coreRect = {
@@ -2718,9 +2464,7 @@ void TopTui::Impl::drawCompute(const Rect &rect)
             coreWidth,
             remainingHeight,
         };
-    } else if (hasSnapshot
-               && !snapshot.cpu.coreUsagePercent.isEmpty()
-               && remainingHeight >= 4) {
+    } else if (hasSnapshot && !snapshot.cpu.coreUsagePercent.isEmpty() && remainingHeight >= 4) {
         const int coreHeight = std::max(2, remainingHeight / 2);
         coreRect = {
             rect.x + 1,
@@ -2734,19 +2478,14 @@ void TopTui::Impl::drawCompute(const Rect &rect)
 
     CoreGridLayout coreLayout;
     if (coreRect.width > 0 && coreRect.height > 0) {
-        int largestCoreId =
-            std::max(0,
-                     static_cast<int>(
-                         snapshot.cpu.coreUsagePercent.size()) - 1);
+        int largestCoreId = std::max(0, static_cast<int>(snapshot.cpu.coreUsagePercent.size()) - 1);
         for (const int id : snapshot.cpu.coreIds)
             largestCoreId = std::max(largestCoreId, id);
-        coreLayout =
-            calculateCoreGridLayout(
-                coreRect.width,
-                coreRect.height,
-                snapshot.cpu.coreUsagePercent.size(),
-                largestCoreId,
-                corePage);
+        coreLayout = calculateCoreGridLayout(coreRect.width,
+                                             coreRect.height,
+                                             snapshot.cpu.coreUsagePercent.size(),
+                                             largestCoreId,
+                                             corePage);
         corePage = coreLayout.page;
         corePageCount = std::max(1, coreLayout.pageCount);
     } else {
@@ -2755,19 +2494,14 @@ void TopTui::Impl::drawCompute(const Rect &rect)
     }
 
     const QVector<QString> gpuKeys = graphGpuKeys();
-    const int activeGpuIndex =
-        computeGraphGpuKey.isEmpty()
-        ? -1
-        : gpuKeys.indexOf(computeGraphGpuKey);
-    QString graphLabel =
-        activeGpuIndex >= 0
-        ? QStringLiteral("GPU %1").arg(activeGpuIndex)
-        : QStringLiteral("CPU");
+    const int activeGpuIndex
+        = computeGraphGpuKey.isEmpty() ? -1 : gpuKeys.indexOf(computeGraphGpuKey);
+    QString graphLabel = activeGpuIndex >= 0 ? QStringLiteral("GPU %1").arg(activeGpuIndex)
+                                             : QStringLiteral("CPU");
     if (activeGpuIndex < 0)
         computeGraphGpuKey.clear();
 
-    QString title =
-        QStringLiteral("Compute · graph %1 [g]").arg(graphLabel);
+    QString title = QStringLiteral("Compute · graph %1 [g]").arg(graphLabel);
     if (coreLayout.pageCount > 1) {
         title += QStringLiteral(" · cores %1–%2/%3 [/]")
                      .arg(coreLayout.firstIndex + 1)
@@ -2795,27 +2529,20 @@ void TopTui::Impl::drawCompute(const Rect &rect)
     constexpr int summaryLabelWidth = 4;
     constexpr int summaryPercentWidth = 5;
     constexpr int summaryGapWidth = 3;
-    const int summaryMeterWidth =
-        std::clamp(innerWidth / 5, 12, 32);
-    const int detailWidth =
-        std::max(0,
-                 innerWidth - summaryLabelWidth - summaryPercentWidth
-                     - summaryGapWidth - summaryMeterWidth);
-    const QString cpuName =
-        snapshot.system.cpuModelName.isEmpty()
-        ? QStringLiteral("CPU")
-        : snapshot.system.cpuModelName;
-    const QString cpuDetail =
-        QStringLiteral("PWR %1 · %2 · %3 · %4")
-            .arg(optionalNumber(cpu.powerWatts, QStringLiteral(" W"), 1),
-                 optionalNumber(cpu.frequencyCurrentMHz,
-                                QStringLiteral(" MHz"),
-                                0),
-                 formatTemperature(cpu.packageTemperatureCelsius
-                                       ? cpu.packageTemperatureCelsius
-                                       : cpu.temperatureCelsius,
-                                   options.temperatureUnit),
-                 cpuName);
+    const int summaryMeterWidth = std::clamp(innerWidth / 5, 12, 32);
+    const int detailWidth = std::max(0,
+                                     innerWidth - summaryLabelWidth - summaryPercentWidth
+                                         - summaryGapWidth - summaryMeterWidth);
+    const QString cpuName = snapshot.system.cpuModelName.isEmpty() ? QStringLiteral("CPU")
+                                                                   : snapshot.system.cpuModelName;
+    const QString cpuDetail
+        = QStringLiteral("PWR %1 · %2 · %3 · %4")
+              .arg(optionalNumber(cpu.powerWatts, QStringLiteral(" W"), 1),
+                   optionalNumber(cpu.frequencyCurrentMHz, QStringLiteral(" MHz"), 0),
+                   formatTemperature(cpu.packageTemperatureCelsius ? cpu.packageTemperatureCelsius
+                                                                   : cpu.temperatureCelsius,
+                                     options.temperatureUnit),
+                   cpuName);
     drawMetricRow(rect,
                   0,
                   QStringLiteral("CPU"),
@@ -2835,37 +2562,28 @@ void TopTui::Impl::drawCompute(const Rect &rect)
     if (summaryRows > 1) {
         if (summaryGpu) {
             Tone gpuTone = Tone::Good;
-            if (summaryGpu->temperatureCelsius
-                && *summaryGpu->temperatureCelsius >= 90.0) {
+            if (summaryGpu->temperatureCelsius && *summaryGpu->temperatureCelsius >= 90.0) {
                 gpuTone = Tone::Critical;
-            } else if (summaryGpu->temperatureCelsius
-                       && *summaryGpu->temperatureCelsius >= 80.0) {
+            } else if (summaryGpu->temperatureCelsius && *summaryGpu->temperatureCelsius >= 80.0) {
                 gpuTone = Tone::Warning;
             }
-            const QString name =
-                summaryGpu->name.isEmpty()
-                ? (summaryGpu->id.isEmpty() ? QStringLiteral("GPU")
-                                            : summaryGpu->id)
-                : summaryGpu->name;
-            const QString vram =
-                summaryGpu->vramUsedBytes && summaryGpu->vramTotalBytes
-                ? QStringLiteral("%1/%2")
-                      .arg(formatBytes(
-                               static_cast<double>(
-                                   *summaryGpu->vramUsedBytes)),
-                           formatBytes(
-                               static_cast<double>(
-                                   *summaryGpu->vramTotalBytes)))
-                : QStringLiteral("--");
-            const QString gpuDetail =
-                QStringLiteral("PWR %1 · %2 · VRAM %3 · %4")
-                    .arg(optionalNumber(summaryGpu->powerWatts,
-                                        QStringLiteral(" W"),
-                                        1),
-                         formatTemperature(summaryGpu->temperatureCelsius,
-                                           options.temperatureUnit),
-                         vram,
-                         name);
+            const QString name
+                = summaryGpu->name.isEmpty()
+                      ? (summaryGpu->id.isEmpty() ? QStringLiteral("GPU") : summaryGpu->id)
+                      : summaryGpu->name;
+            const QString vram
+                = summaryGpu->vramUsedBytes && summaryGpu->vramTotalBytes
+                      ? QStringLiteral("%1/%2").arg(
+                            formatBytes(static_cast<double>(*summaryGpu->vramUsedBytes)),
+                            formatBytes(static_cast<double>(*summaryGpu->vramTotalBytes)))
+                      : QStringLiteral("--");
+            const QString gpuDetail
+                = QStringLiteral("PWR %1 · %2 · VRAM %3 · %4")
+                      .arg(optionalNumber(summaryGpu->powerWatts, QStringLiteral(" W"), 1),
+                           formatTemperature(summaryGpu->temperatureCelsius,
+                                             options.temperatureUnit),
+                           vram,
+                           name);
             drawMetricRow(rect,
                           1,
                           QStringLiteral("GPU"),
@@ -2876,8 +2594,7 @@ void TopTui::Impl::drawCompute(const Rect &rect)
                           Tone::Good,
                           gpuTone);
         } else {
-            writeInside(
-                rect, 1, QStringLiteral("GPU metrics unavailable"), Tone::Muted);
+            writeInside(rect, 1, QStringLiteral("GPU metrics unavailable"), Tone::Muted);
         }
     }
 
@@ -2904,10 +2621,8 @@ void TopTui::Impl::drawCompute(const Rect &rect)
     if (sideBySide) {
         const int dividerX = coreRect.x - 1;
         ::attrset(static_cast<int>(theme->attribute(Tone::Outline)));
-        ::mvvline(contentTop,
-                  dividerX,
-                  unicode ? ACS_VLINE : static_cast<chtype>('|'),
-                  remainingHeight);
+        ::mvvline(
+            contentTop, dividerX, unicode ? ACS_VLINE : static_cast<chtype>('|'), remainingHeight);
     }
     if (coreRect.width > 0 && coreRect.height > 0)
         drawCoreGrid(coreRect, cpu.coreIds, cpu.coreUsagePercent);
@@ -2935,8 +2650,7 @@ void TopTui::Impl::drawMemory(const Rect &rect)
     const auto percentOfTotal = [&memory](quint64 value) -> OptionalNumber {
         if (memory.totalBytes == 0)
             return std::nullopt;
-        return 100.0 * static_cast<double>(value)
-            / static_cast<double>(memory.totalBytes);
+        return 100.0 * static_cast<double>(value) / static_cast<double>(memory.totalBytes);
     };
     const QString total = formatBytes(memory.totalBytes);
     const int detailWidth = rect.width >= 52 ? 21 : 0;
@@ -2946,8 +2660,7 @@ void TopTui::Impl::drawMemory(const Rect &rect)
                   line++,
                   QStringLiteral("Used"),
                   memory.usagePercent,
-                  QStringLiteral("%1 / %2")
-                      .arg(formatBytes(memory.usedBytes), total),
+                  QStringLiteral("%1 / %2").arg(formatBytes(memory.usedBytes), total),
                   labelWidth,
                   detailWidth,
                   utilizationTone,
@@ -2956,8 +2669,7 @@ void TopTui::Impl::drawMemory(const Rect &rect)
                   line++,
                   QStringLiteral("Available"),
                   percentOfTotal(memory.availableBytes),
-                  QStringLiteral("%1 / %2")
-                      .arg(formatBytes(memory.availableBytes), total),
+                  QStringLiteral("%1 / %2").arg(formatBytes(memory.availableBytes), total),
                   labelWidth,
                   detailWidth,
                   Tone::Good);
@@ -2965,8 +2677,7 @@ void TopTui::Impl::drawMemory(const Rect &rect)
                   line++,
                   QStringLiteral("Cached"),
                   percentOfTotal(memory.cachedBytes),
-                  QStringLiteral("%1 / %2")
-                      .arg(formatBytes(memory.cachedBytes), total),
+                  QStringLiteral("%1 / %2").arg(formatBytes(memory.cachedBytes), total),
                   labelWidth,
                   detailWidth,
                   Tone::Primary);
@@ -2974,28 +2685,24 @@ void TopTui::Impl::drawMemory(const Rect &rect)
                   line++,
                   QStringLiteral("Free"),
                   percentOfTotal(memory.freeBytes),
-                  QStringLiteral("%1 / %2")
-                      .arg(formatBytes(memory.freeBytes), total),
+                  QStringLiteral("%1 / %2").arg(formatBytes(memory.freeBytes), total),
                   labelWidth,
                   detailWidth,
                   Tone::Good);
 
     if (line < rect.height - 2) {
         if (memory.swapTotalBytes > 0) {
-            const double swapPercent =
-                100.0 * static_cast<double>(memory.swapUsedBytes)
-                / static_cast<double>(memory.swapTotalBytes);
+            const double swapPercent = 100.0 * static_cast<double>(memory.swapUsedBytes)
+                                       / static_cast<double>(memory.swapTotalBytes);
             writeInside(
                 rect,
                 line,
                 QStringLiteral("Swap %1 / %2 · %3%")
-                    .arg(formatBytes(memory.swapUsedBytes),
-                         formatBytes(memory.swapTotalBytes))
+                    .arg(formatBytes(memory.swapUsedBytes), formatBytes(memory.swapTotalBytes))
                     .arg(swapPercent, 0, 'f', 1),
                 Tone::Muted);
         } else {
-            writeInside(
-                rect, line, QStringLiteral("Swap not configured"), Tone::Muted);
+            writeInside(rect, line, QStringLiteral("Swap not configured"), Tone::Muted);
         }
     }
 }
@@ -3017,25 +2724,23 @@ void TopTui::Impl::drawNetwork(const Rect &rect)
 
     const QString down = unicode ? QStringLiteral("↓") : QStringLiteral("D");
     const QString up = unicode ? QStringLiteral("↑") : QStringLiteral("U");
-    writeInside(
-        rect,
-        0,
-        QStringLiteral("%1 %2  %3 %4")
-            .arg(down,
-                 formatRate(snapshot.network.downloadBytesPerSecond),
-                 up,
-                 formatRate(snapshot.network.uploadBytesPerSecond)),
-        Tone::Primary,
-        A_BOLD);
-    writeInside(
-        rect,
-        1,
-        QStringLiteral("total %1 %2 · %3 %4")
-            .arg(down,
-                 formatBytes(snapshot.network.downloadTotalBytes),
-                 up,
-                 formatBytes(snapshot.network.uploadTotalBytes)),
-        Tone::Muted);
+    writeInside(rect,
+                0,
+                QStringLiteral("%1 %2  %3 %4")
+                    .arg(down,
+                         formatRate(snapshot.network.downloadBytesPerSecond),
+                         up,
+                         formatRate(snapshot.network.uploadBytesPerSecond)),
+                Tone::Primary,
+                A_BOLD);
+    writeInside(rect,
+                1,
+                QStringLiteral("total %1 %2 · %3 %4")
+                    .arg(down,
+                         formatBytes(snapshot.network.downloadTotalBytes),
+                         up,
+                         formatBytes(snapshot.network.uploadTotalBytes)),
+                Tone::Muted);
 
     const Rect graph{
         rect.x + 1,
@@ -3046,13 +2751,11 @@ void TopTui::Impl::drawNetwork(const Rect &rect)
     if (graph.height >= 3) {
         drawSplitHistoryGraph(graph);
     } else if (graph.height > 0) {
-        writeInside(
-            rect,
-            2,
-            down + QStringLiteral(" ")
-                + sparkline(downloadHistory,
-                            std::max(0, rect.width - 4)),
-            Tone::Primary);
+        writeInside(rect,
+                    2,
+                    down + QStringLiteral(" ")
+                        + sparkline(downloadHistory, std::max(0, rect.width - 4)),
+                    Tone::Primary);
     }
 }
 
@@ -3060,12 +2763,8 @@ void TopTui::Impl::drawDisk(const Rect &rect)
 {
     const int availableRows = std::max(0, rect.height - 2);
     const int rowsPerDisk = availableRows >= 2 ? 2 : 1;
-    const int disksPerPage =
-        std::max(1, availableRows / rowsPerDisk);
-    const PageLayout page =
-        calculatePageLayout(snapshot.disks.size(),
-                            disksPerPage,
-                            diskPage);
+    const int disksPerPage = std::max(1, availableRows / rowsPerDisk);
+    const PageLayout page = calculatePageLayout(snapshot.disks.size(), disksPerPage, diskPage);
     diskPage = page.page;
     diskPageCount = page.pageCount;
 
@@ -3082,16 +2781,12 @@ void TopTui::Impl::drawDisk(const Rect &rect)
         return;
     }
     if (snapshot.disks.isEmpty()) {
-        writeInside(rect,
-                    0,
-                    QStringLiteral("No mounted disk metrics"),
-                    Tone::Muted);
+        writeInside(rect, 0, QStringLiteral("No mounted disk metrics"), Tone::Muted);
         return;
     }
 
     const int innerWidth = std::max(0, rect.width - 2);
-    const int labelWidth =
-        std::clamp(innerWidth / 5, 5, 14);
+    const int labelWidth = std::clamp(innerWidth / 5, 5, 14);
     const int detailWidth = rect.width >= 48 ? 17 : 0;
     int line = 0;
     const int end = page.firstIndex + page.visibleCount;
@@ -3107,34 +2802,29 @@ void TopTui::Impl::drawDisk(const Rect &rect)
             line++,
             disk.mountPoint.isEmpty() ? disk.device : disk.mountPoint,
             disk.usagePercent,
-            QStringLiteral("%1/%2")
-                .arg(formatBytes(disk.usedBytes),
-                     formatBytes(disk.totalBytes)),
+            QStringLiteral("%1/%2").arg(formatBytes(disk.usedBytes), formatBytes(disk.totalBytes)),
             labelWidth,
             detailWidth,
             tone,
             tone);
         if (rowsPerDisk > 1 && line < availableRows) {
-            writeInside(
-                rect,
-                line++,
-                QStringLiteral("R %1 · W %2 · %3")
-                    .arg(formatRate(disk.readBytesPerSecond),
-                         formatRate(disk.writeBytesPerSecond),
-                         disk.filesystem.isEmpty() ? disk.device : disk.filesystem),
-                Tone::Muted);
+            writeInside(rect,
+                        line++,
+                        QStringLiteral("R %1 · W %2 · %3")
+                            .arg(formatRate(disk.readBytesPerSecond),
+                                 formatRate(disk.writeBytesPerSecond),
+                                 disk.filesystem.isEmpty() ? disk.device : disk.filesystem),
+                        Tone::Muted);
         }
     }
 }
 
 void TopTui::Impl::drawResources(const Rect &rect)
 {
-    const bool focused =
-        focusedPanel == Panel::Memory || focusedPanel == Panel::Disk;
+    const bool focused = focusedPanel == Panel::Memory || focusedPanel == Panel::Disk;
     drawBox(rect, QStringLiteral("Resources"), focused);
     if (!hasSnapshot) {
-        writeInside(
-            rect, 0, QStringLiteral("Waiting for resource data..."), Tone::Muted);
+        writeInside(rect, 0, QStringLiteral("Waiting for resource data..."), Tone::Muted);
         return;
     }
 
@@ -3144,25 +2834,21 @@ void TopTui::Impl::drawResources(const Rect &rect)
 
     if (snapshot.memory.available && line < rect.height - 2) {
         Tone tone = Tone::Primary;
-        if (snapshot.memory.usagePercent
-            && *snapshot.memory.usagePercent >= 92.0) {
+        if (snapshot.memory.usagePercent && *snapshot.memory.usagePercent >= 92.0) {
             tone = Tone::Critical;
-        } else if (snapshot.memory.usagePercent
-                   && *snapshot.memory.usagePercent >= 80.0) {
+        } else if (snapshot.memory.usagePercent && *snapshot.memory.usagePercent >= 80.0) {
             tone = Tone::Warning;
         }
-        drawMetricRow(
-            rect,
-            line++,
-            QStringLiteral("RAM"),
-            snapshot.memory.usagePercent,
-            QStringLiteral("%1/%2")
-                .arg(formatBytes(snapshot.memory.usedBytes),
-                     formatBytes(snapshot.memory.totalBytes)),
-            labelWidth,
-            detailWidth,
-            tone,
-            tone);
+        drawMetricRow(rect,
+                      line++,
+                      QStringLiteral("RAM"),
+                      snapshot.memory.usagePercent,
+                      QStringLiteral("%1/%2").arg(formatBytes(snapshot.memory.usedBytes),
+                                                  formatBytes(snapshot.memory.totalBytes)),
+                      labelWidth,
+                      detailWidth,
+                      tone,
+                      tone);
     }
 
     const DiskInfo *primaryDisk = nullptr;
@@ -3178,38 +2864,32 @@ void TopTui::Impl::drawResources(const Rect &rect)
         Tone tone = Tone::Primary;
         if (primaryDisk->usagePercent && *primaryDisk->usagePercent >= 95.0)
             tone = Tone::Critical;
-        else if (primaryDisk->usagePercent
-                 && *primaryDisk->usagePercent >= 85.0)
+        else if (primaryDisk->usagePercent && *primaryDisk->usagePercent >= 85.0)
             tone = Tone::Warning;
-        drawMetricRow(
-            rect,
-            line++,
-            primaryDisk->mountPoint.isEmpty()
-                ? QStringLiteral("Disk")
-                : primaryDisk->mountPoint,
-            primaryDisk->usagePercent,
-            QStringLiteral("%1/%2")
-                .arg(formatBytes(primaryDisk->usedBytes),
-                     formatBytes(primaryDisk->totalBytes)),
-            labelWidth,
-            detailWidth,
-            tone,
-            tone);
+        drawMetricRow(rect,
+                      line++,
+                      primaryDisk->mountPoint.isEmpty() ? QStringLiteral("Disk")
+                                                        : primaryDisk->mountPoint,
+                      primaryDisk->usagePercent,
+                      QStringLiteral("%1/%2").arg(formatBytes(primaryDisk->usedBytes),
+                                                  formatBytes(primaryDisk->totalBytes)),
+                      labelWidth,
+                      detailWidth,
+                      tone,
+                      tone);
     }
 
     if (snapshot.battery.present && line < rect.height - 2) {
-        drawMetricRow(
-            rect,
-            line++,
-            QStringLiteral("BAT"),
-            snapshot.battery.chargePercent,
-            snapshot.battery.status.isEmpty()
-                ? QStringLiteral("--")
-                : snapshot.battery.status,
-            labelWidth,
-            detailWidth,
-            Tone::Good,
-            Tone::Good);
+        drawMetricRow(rect,
+                      line++,
+                      QStringLiteral("BAT"),
+                      snapshot.battery.chargePercent,
+                      snapshot.battery.status.isEmpty() ? QStringLiteral("--")
+                                                        : snapshot.battery.status,
+                      labelWidth,
+                      detailWidth,
+                      Tone::Good,
+                      Tone::Good);
     }
 }
 
@@ -3219,9 +2899,8 @@ QString TopTui::Impl::processLine(const ProcessRow &row, int width) const
     QString prefix;
     if (treeMode && row.depth > 0) {
         const int visibleDepth = std::min(row.depth, 12);
-        prefix = QString(static_cast<qsizetype>(visibleDepth) * 2,
-                         QLatin1Char(' '))
-            + (unicode ? QStringLiteral("↳ ") : QStringLiteral("`-"));
+        prefix = QString(static_cast<qsizetype>(visibleDepth) * 2, QLatin1Char(' '))
+                 + (unicode ? QStringLiteral("↳ ") : QStringLiteral("`-"));
     }
     if (row.cycle)
         prefix += unicode ? QStringLiteral("⟳ ") : QStringLiteral("! ");
@@ -3232,12 +2911,10 @@ QString TopTui::Impl::processLine(const ProcessRow &row, int width) const
     if (!process.command.isEmpty() && process.command != process.name)
         command += QStringLiteral("  ") + process.command;
 
-    const QString cpu = process.cpuUsagePercent
-        ? QString::number(*process.cpuUsagePercent, 'f', 1)
-        : QStringLiteral("--");
-    const QString memory = process.memoryPercent
-        ? QString::number(*process.memoryPercent, 'f', 1)
-        : QStringLiteral("--");
+    const QString cpu = process.cpuUsagePercent ? QString::number(*process.cpuUsagePercent, 'f', 1)
+                                                : QStringLiteral("--");
+    const QString memory = process.memoryPercent ? QString::number(*process.memoryPercent, 'f', 1)
+                                                 : QStringLiteral("--");
 
     if (width >= 104) {
         const int commandWidth = std::max(8, width - 66);
@@ -3277,11 +2954,10 @@ void TopTui::Impl::drawProcesses(const Rect &rect)
     if (rect.height < 3 || rect.width < 12)
         return;
 
-    QString title =
-        QStringLiteral("Processes %1/%2 · sort %3")
-            .arg(processRows.size())
-            .arg(hasSnapshot ? snapshot.processes.size() : 0)
-            .arg(sortName());
+    QString title = QStringLiteral("Processes %1/%2 · sort %3")
+                        .arg(processRows.size())
+                        .arg(hasSnapshot ? snapshot.processes.size() : 0)
+                        .arg(sortName());
     if (treeMode)
         title += QStringLiteral(" · tree");
     if (!processFilter.isEmpty())
@@ -3294,8 +2970,7 @@ void TopTui::Impl::drawProcesses(const Rect &rect)
         header = QStringLiteral(
             "    PID USER         CPU%   MEM%       RSS STATE  THR      TIME COMMAND");
     } else if (width >= 76) {
-        header = QStringLiteral(
-            "    PID USER        CPU%   MEM%  S  THR COMMAND");
+        header = QStringLiteral("    PID USER        CPU%   MEM%  S  THR COMMAND");
     } else {
         header = QStringLiteral("    PID   CPU%   MEM% COMMAND");
     }
@@ -3306,24 +2981,19 @@ void TopTui::Impl::drawProcesses(const Rect &rect)
     if (processRows.isEmpty()) {
         writeInside(rect,
                     1,
-                    processFilter.isEmpty()
-                        ? QStringLiteral("No process data available")
-                        : QStringLiteral("No processes match the filter"),
+                    processFilter.isEmpty() ? QStringLiteral("No process data available")
+                                            : QStringLiteral("No processes match the filter"),
                     Tone::Muted);
         return;
     }
 
-    const int end =
-        std::min(static_cast<int>(processRows.size()),
-                 scrollOffset + processPageRows);
+    const int end = std::min(static_cast<int>(processRows.size()), scrollOffset + processPageRows);
     int outputLine = 1;
     for (int index = scrollOffset; index < end; ++index, ++outputLine) {
         const bool selected = index == selectedIndex;
-        const QString marker =
-            selected ? (unicode ? QStringLiteral("›") : QStringLiteral(">"))
-                     : QStringLiteral(" ");
-        const QString line =
-            marker + processLine(processRows.at(index), std::max(0, width - 1));
+        const QString marker = selected ? (unicode ? QStringLiteral("›") : QStringLiteral(">"))
+                                        : QStringLiteral(" ");
+        const QString line = marker + processLine(processRows.at(index), std::max(0, width - 1));
         writeInside(rect,
                     outputLine,
                     line,
@@ -3397,9 +3067,7 @@ void TopTui::Impl::drawHelpModal()
         QStringLiteral("NO_COLOR disables color; --ascii disables Unicode glyphs."),
     };
 
-    for (int line = 0;
-         line < lines.size() && line < rect.height - 2;
-         ++line) {
+    for (int line = 0; line < lines.size() && line < rect.height - 2; ++line) {
         Tone tone = Tone::Normal;
         attr_t extra = A_NORMAL;
         if (lines.at(line) == QStringLiteral("Navigation")
@@ -3432,26 +3100,14 @@ void TopTui::Impl::drawFilterModal()
     drawBox(rect, QStringLiteral("Filter processes"), true);
 
     const QString label = QStringLiteral("Filter: ");
-    const int fieldWidth =
-        std::max(0, rect.width - 2 - displayWidth(label));
+    const int fieldWidth = std::max(0, rect.width - 2 - displayWidth(label));
     const QString visible = rightByWidth(filterDraft, fieldWidth);
-    writeInside(rect,
-                0,
-                label + visible,
-                Tone::Primary,
-                A_BOLD,
-                true);
-    writeInside(rect,
-                1,
-                QStringLiteral("Enter apply · Esc restore · Ctrl+U clear"),
-                Tone::Muted);
+    writeInside(rect, 0, label + visible, Tone::Primary, A_BOLD, true);
+    writeInside(rect, 1, QStringLiteral("Enter apply · Esc restore · Ctrl+U clear"), Tone::Muted);
 
-    const int cursorColumn =
-        std::clamp(rect.x + 1 + displayWidth(label) + displayWidth(visible),
-                   0,
-                   std::max(0, columns - 1));
-    const int cursorRow =
-        std::clamp(rect.y + 1, 0, std::max(0, rows - 1));
+    const int cursorColumn = std::clamp(
+        rect.x + 1 + displayWidth(label) + displayWidth(visible), 0, std::max(0, columns - 1));
+    const int cursorRow = std::clamp(rect.y + 1, 0, std::max(0, rows - 1));
     ::move(cursorRow, cursorColumn);
     ::curs_set(1);
 }
@@ -3466,11 +3122,8 @@ void TopTui::Impl::drawDetailsModal()
         std::min(width, columns),
         std::min(height, rows),
     };
-    drawBox(rect,
-            QStringLiteral("Process %1 · %2")
-                .arg(modalProcess.pid)
-                .arg(modalProcess.name),
-            true);
+    drawBox(
+        rect, QStringLiteral("Process %1 · %2").arg(modalProcess.pid).arg(modalProcess.name), true);
 
     int line = 0;
     writeInside(rect,
@@ -3481,34 +3134,30 @@ void TopTui::Impl::drawDetailsModal()
                     .arg(modalProcess.user, modalProcess.state),
                 Tone::Primary,
                 A_BOLD);
-    writeInside(
-        rect,
-        line++,
-        QStringLiteral("CPU %1 · memory %2 (%3) · threads %4")
-            .arg(formatPercent(modalProcess.cpuUsagePercent),
-                 formatPercent(modalProcess.memoryPercent),
-                 formatBytes(modalProcess.memoryBytes))
-            .arg(modalProcess.threadCount));
+    writeInside(rect,
+                line++,
+                QStringLiteral("CPU %1 · memory %2 (%3) · threads %4")
+                    .arg(formatPercent(modalProcess.cpuUsagePercent),
+                         formatPercent(modalProcess.memoryPercent),
+                         formatBytes(modalProcess.memoryBytes))
+                    .arg(modalProcess.threadCount));
     writeInside(rect,
                 line++,
                 QStringLiteral("Runtime %1 · started %2")
                     .arg(formatDuration(modalProcess.runtimeSeconds),
                          modalProcess.startTimeMs > 0
-                             ? QDateTime::fromMSecsSinceEpoch(
-                                   modalProcess.startTimeMs)
+                             ? QDateTime::fromMSecsSinceEpoch(modalProcess.startTimeMs)
                                    .toString(QStringLiteral("yyyy-MM-dd HH:mm:ss"))
                              : QStringLiteral("--")));
     writeInside(rect,
                 line++,
                 QStringLiteral("Executable: %1")
-                    .arg(modalProcess.executablePath.isEmpty()
-                             ? QStringLiteral("--")
-                             : modalProcess.executablePath),
+                    .arg(modalProcess.executablePath.isEmpty() ? QStringLiteral("--")
+                                                               : modalProcess.executablePath),
                 Tone::Muted);
     writeInside(rect, line++, QStringLiteral("Command:"), Tone::Muted, A_BOLD);
 
-    QString remaining =
-        modalProcess.command.isEmpty() ? modalProcess.name : modalProcess.command;
+    QString remaining = modalProcess.command.isEmpty() ? modalProcess.name : modalProcess.command;
     const int commandWidth = std::max(1, rect.width - 4);
     while (!remaining.isEmpty() && line < rect.height - 3) {
         const QString chunk = leftByWidth(remaining, commandWidth);
@@ -3519,10 +3168,8 @@ void TopTui::Impl::drawDetailsModal()
     }
     if (!remaining.isEmpty() && line < rect.height - 2)
         writeInside(rect, line++, QStringLiteral("  ..."), Tone::Muted);
-    writeInside(rect,
-                rect.height - 3,
-                QStringLiteral("Esc or Enter closes · q quits keytop"),
-                Tone::Muted);
+    writeInside(
+        rect, rect.height - 3, QStringLiteral("Esc or Enter closes · q quits keytop"), Tone::Muted);
 }
 
 void TopTui::Impl::drawSignalModal(bool killConfirmation)
@@ -3538,58 +3185,42 @@ void TopTui::Impl::drawSignalModal(bool killConfirmation)
 
     if (!killConfirmation) {
         drawBox(rect, QStringLiteral("Confirm process signal"), true);
-        writeInside(
-            rect,
-            0,
-            QStringLiteral("Target: %1 (PID %2)").arg(signalName).arg(signalPid),
-            Tone::Primary,
-            A_BOLD);
+        writeInside(rect,
+                    0,
+                    QStringLiteral("Target: %1 (PID %2)").arg(signalName).arg(signalPid),
+                    Tone::Primary,
+                    A_BOLD);
         writeInside(rect,
                     2,
                     QStringLiteral("Enter  Send SIGTERM (default, graceful)"),
                     Tone::Warning,
                     A_BOLD);
-        writeInside(rect,
-                    3,
-                    QStringLiteral("K      Choose forceful SIGKILL"),
-                    Tone::Critical);
-        writeInside(rect,
-                    5,
-                    QStringLiteral("Esc cancels · q quits keytop"),
-                    Tone::Muted);
+        writeInside(rect, 3, QStringLiteral("K      Choose forceful SIGKILL"), Tone::Critical);
+        writeInside(rect, 5, QStringLiteral("Esc cancels · q quits keytop"), Tone::Muted);
     } else {
         drawBox(rect, QStringLiteral("Confirm SIGKILL · second step"), true);
-        writeInside(
-            rect,
-            0,
-            QStringLiteral("Target: %1 (PID %2)").arg(signalName).arg(signalPid),
-            Tone::Critical,
-            A_BOLD);
         writeInside(rect,
-                    2,
-                    QStringLiteral("SIGKILL cannot be handled or cleaned up."),
-                    Tone::Critical);
+                    0,
+                    QStringLiteral("Target: %1 (PID %2)").arg(signalName).arg(signalPid),
+                    Tone::Critical,
+                    A_BOLD);
+        writeInside(
+            rect, 2, QStringLiteral("SIGKILL cannot be handled or cleaned up."), Tone::Critical);
         writeInside(rect,
                     3,
                     QStringLiteral("Press uppercase K again to send SIGKILL."),
                     Tone::Critical,
                     A_BOLD);
-        writeInside(rect,
-                    5,
-                    QStringLiteral("Esc cancels · q quits keytop"),
-                    Tone::Muted);
+        writeInside(rect, 5, QStringLiteral("Esc cancels · q quits keytop"), Tone::Muted);
     }
 }
 
-TopTui::TopTui(Sampler &sampler)
-    : TopTui(sampler, Options{})
-{
-}
+TopTui::TopTui(Sampler &sampler) : TopTui(sampler, Options{})
+{}
 
 TopTui::TopTui(Sampler &sampler, const Options &options)
     : m_impl(std::make_unique<Impl>(sampler, options))
-{
-}
+{}
 
 TopTui::~TopTui() = default;
 

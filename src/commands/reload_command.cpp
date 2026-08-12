@@ -12,14 +12,10 @@ namespace {
 bool isTuiCommand(const QStringList &arguments)
 {
     for (const QString &argument : arguments) {
-        if (argument == QStringLiteral("value")
-            || argument == QStringLiteral("stream")
-            || argument == QStringLiteral("snapshot")
-            || argument == QStringLiteral("modules")
-            || argument == QStringLiteral("reload")
-            || argument == QStringLiteral("--help")
-            || argument == QStringLiteral("--version")
-            || argument == QStringLiteral("version"))
+        if (argument == QStringLiteral("value") || argument == QStringLiteral("stream")
+            || argument == QStringLiteral("snapshot") || argument == QStringLiteral("modules")
+            || argument == QStringLiteral("reload") || argument == QStringLiteral("--help")
+            || argument == QStringLiteral("--version") || argument == QStringLiteral("version"))
             return false;
     }
     return true;
@@ -48,18 +44,16 @@ CommandResult ReloadCommand::run(const QStringList &arguments) const
         if (!ok || pid <= 1 || pid == static_cast<qint64>(::getpid()))
             continue;
 
-        const QString executable = QFileInfo(
-            QStringLiteral("/proc/%1/exe").arg(pid)).symLinkTarget();
-        if (executable.isEmpty()
-            || QFileInfo(executable).fileName() != QStringLiteral("keytop"))
+        const QString executable
+            = QFileInfo(QStringLiteral("/proc/%1/exe").arg(pid)).symLinkTarget();
+        if (executable.isEmpty() || QFileInfo(executable).fileName() != QStringLiteral("keytop"))
             continue;
 
         QFile commandLine(QStringLiteral("/proc/%1/cmdline").arg(pid));
         if (!commandLine.open(QIODevice::ReadOnly))
             continue;
-        const QStringList commandArguments =
-            QString::fromLocal8Bit(commandLine.readAll())
-                .split(QChar('\0'), Qt::SkipEmptyParts);
+        const QStringList commandArguments
+            = QString::fromLocal8Bit(commandLine.readAll()).split(QChar('\0'), Qt::SkipEmptyParts);
         if (commandArguments.isEmpty() || !isTuiCommand(commandArguments.mid(1)))
             continue;
 

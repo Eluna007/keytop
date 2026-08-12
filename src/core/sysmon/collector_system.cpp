@@ -21,11 +21,11 @@ namespace {
 
 qint64 monotonicNsecs()
 {
-    struct timespec value {};
+    struct timespec value{};
     return ::clock_gettime(CLOCK_MONOTONIC, &value) == 0
-        ? static_cast<qint64>(value.tv_sec) * 1'000'000'000
-            + static_cast<qint64>(value.tv_nsec)
-        : 0;
+               ? static_cast<qint64>(value.tv_sec) * 1'000'000'000
+                     + static_cast<qint64>(value.tv_nsec)
+               : 0;
 }
 
 QByteArray readAll(const QString &path, bool *ok = nullptr)
@@ -72,8 +72,7 @@ OptionalNumber readNumber(const QString &path, double scale = 1.0)
 OptionalInteger readInteger(const QString &path, bool *readOk = nullptr)
 {
     bool fileOk = false;
-    const QString text =
-        QString::fromUtf8(readAll(path, &fileOk)).trimmed();
+    const QString text = QString::fromUtf8(readAll(path, &fileOk)).trimmed();
     bool ok = false;
     const qint64 value = text.toLongLong(&ok);
     if (readOk)
@@ -85,8 +84,7 @@ QString normalizedDmi(const QString &path)
 {
     const QString value = readText(path);
     if (value.compare(QStringLiteral("Default string"), Qt::CaseInsensitive) == 0
-        || value.compare(QStringLiteral("To be filled by O.E.M."),
-                         Qt::CaseInsensitive) == 0) {
+        || value.compare(QStringLiteral("To be filled by O.E.M."), Qt::CaseInsensitive) == 0) {
         return {};
     }
     return value;
@@ -97,8 +95,7 @@ QString normalizedDmi(const QString &path)
 LinuxCollector::LinuxCollector()
 {
     loadStaticSystemInfo();
-    m_nvidiaProgram =
-        QStandardPaths::findExecutable(QStringLiteral("nvidia-smi"));
+    m_nvidiaProgram = QStandardPaths::findExecutable(QStringLiteral("nvidia-smi"));
     m_nvidiaRefreshTimer.start();
 }
 
@@ -124,14 +121,13 @@ void LinuxCollector::loadStaticSystemInfo()
         m_staticSystem.osName = QStringLiteral("Linux");
     m_staticSystem.distroId = osReleaseValue(QStringLiteral("ID")).toLower();
 
-    struct utsname uts {};
+    struct utsname uts{};
     if (::uname(&uts) == 0) {
         m_staticSystem.kernel = QString::fromLocal8Bit(uts.release);
         m_staticSystem.architecture = QString::fromLocal8Bit(uts.machine);
     }
 
-    m_staticSystem.logicalCpuCount =
-        std::max(1, static_cast<int>(::sysconf(_SC_NPROCESSORS_CONF)));
+    m_staticSystem.logicalCpuCount = std::max(1, static_cast<int>(::sysconf(_SC_NPROCESSORS_CONF)));
 
     const QByteArray procStat = readAll(QStringLiteral("/proc/stat"));
     const OptionalInteger bootTimeMs = parseProcBootTimeMs(procStat);
@@ -139,21 +135,18 @@ void LinuxCollector::loadStaticSystemInfo()
         m_staticSystem.bootTimeMs = *bootTimeMs;
     } else {
         bool uptimeOk = false;
-        const double uptime =
-            readAll(QStringLiteral("/proc/uptime"))
-                .simplified()
-                .split(' ')
-                .value(0)
-                .toDouble(&uptimeOk);
+        const double uptime = readAll(QStringLiteral("/proc/uptime"))
+                                  .simplified()
+                                  .split(' ')
+                                  .value(0)
+                                  .toDouble(&uptimeOk);
         if (uptimeOk && uptime >= 0.0) {
-            m_staticSystem.bootTimeMs =
-                QDateTime::currentMSecsSinceEpoch()
-                - static_cast<qint64>(uptime * 1000.0);
+            m_staticSystem.bootTimeMs
+                = QDateTime::currentMSecsSinceEpoch() - static_cast<qint64>(uptime * 1000.0);
         }
     }
 
-    const QList<QByteArray> cpuInfo =
-        readAll(QStringLiteral("/proc/cpuinfo")).split('\n');
+    const QList<QByteArray> cpuInfo = readAll(QStringLiteral("/proc/cpuinfo")).split('\n');
     QSet<QString> physicalCores;
     QString physicalId;
     QString coreId;
@@ -174,12 +167,9 @@ void LinuxCollector::loadStaticSystemInfo()
         else if (m_staticSystem.cpuModelName.isEmpty()) {
             bool processorIsIndex = false;
             value.toInt(&processorIsIndex);
-            if (key.compare(QStringLiteral("model name"),
-                            Qt::CaseInsensitive) == 0
-                || key.compare(QStringLiteral("hardware"),
-                               Qt::CaseInsensitive) == 0
-                || (key.compare(QStringLiteral("processor"),
-                                Qt::CaseInsensitive) == 0
+            if (key.compare(QStringLiteral("model name"), Qt::CaseInsensitive) == 0
+                || key.compare(QStringLiteral("hardware"), Qt::CaseInsensitive) == 0
+                || (key.compare(QStringLiteral("processor"), Qt::CaseInsensitive) == 0
                     && !processorIsIndex)) {
                 m_staticSystem.cpuModelName = value.simplified();
             }
@@ -191,31 +181,25 @@ void LinuxCollector::loadStaticSystemInfo()
             coreId.clear();
         }
     }
-    m_staticSystem.physicalCoreCount = !physicalCores.isEmpty()
-        ? physicalCores.size()
-        : (fallbackCores > 0 ? fallbackCores : m_staticSystem.logicalCpuCount);
+    m_staticSystem.physicalCoreCount
+        = !physicalCores.isEmpty()
+              ? physicalCores.size()
+              : (fallbackCores > 0 ? fallbackCores : m_staticSystem.logicalCpuCount);
 
-    m_staticSystem.vendor =
-        normalizedDmi(QStringLiteral("/sys/class/dmi/id/sys_vendor"));
-    m_staticSystem.productName =
-        normalizedDmi(QStringLiteral("/sys/class/dmi/id/product_name"));
-    m_staticSystem.boardName =
-        normalizedDmi(QStringLiteral("/sys/class/dmi/id/board_name"));
-    m_staticSystem.biosVersion =
-        normalizedDmi(QStringLiteral("/sys/class/dmi/id/bios_version"));
-    const QProcessEnvironment environment =
-        QProcessEnvironment::systemEnvironment();
+    m_staticSystem.vendor = normalizedDmi(QStringLiteral("/sys/class/dmi/id/sys_vendor"));
+    m_staticSystem.productName = normalizedDmi(QStringLiteral("/sys/class/dmi/id/product_name"));
+    m_staticSystem.boardName = normalizedDmi(QStringLiteral("/sys/class/dmi/id/board_name"));
+    m_staticSystem.biosVersion = normalizedDmi(QStringLiteral("/sys/class/dmi/id/bios_version"));
+    const QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
     m_staticSystem.systemUser = environment.value(QStringLiteral("USER"));
-    const QString desktop = environment.value(
-        QStringLiteral("XDG_CURRENT_DESKTOP"),
-        environment.value(QStringLiteral("XDG_SESSION_DESKTOP")));
+    const QString desktop
+        = environment.value(QStringLiteral("XDG_CURRENT_DESKTOP"),
+                            environment.value(QStringLiteral("XDG_SESSION_DESKTOP")));
     m_staticSystem.wmName = desktop.split(QLatin1Char(':')).value(0).toLower();
     const QString shell = environment.value(QStringLiteral("SHELL"));
     m_staticSystem.shellName = QFileInfo(shell).fileName();
-    m_staticSystem.chassis =
-        QStringLiteral("%1 %2")
-            .arg(m_staticSystem.vendor, m_staticSystem.productName)
-            .trimmed();
+    m_staticSystem.chassis
+        = QStringLiteral("%1 %2").arg(m_staticSystem.vendor, m_staticSystem.productName).trimmed();
     m_staticSystem.available = !m_staticSystem.hostName.isEmpty();
 
     const QDir hwmon(QStringLiteral("/sys/class/hwmon"));
@@ -224,27 +208,22 @@ void LinuxCollector::loadStaticSystemInfo()
         const QString name = readText(path + QStringLiteral("/name")).toLower();
         if (m_fanPath.isEmpty()) {
             for (int index = 1; index <= 8; ++index) {
-                const QString candidate =
-                    path + QStringLiteral("/fan%1_input").arg(index);
+                const QString candidate = path + QStringLiteral("/fan%1_input").arg(index);
                 if (QFileInfo::exists(candidate)) {
                     m_fanPath = candidate;
                     break;
                 }
             }
         }
-        if (name == QStringLiteral("coretemp")
-            || name == QStringLiteral("k10temp")
-            || name == QStringLiteral("zenpower")
-            || name == QStringLiteral("x86_pkg_temp")) {
+        if (name == QStringLiteral("coretemp") || name == QStringLiteral("k10temp")
+            || name == QStringLiteral("zenpower") || name == QStringLiteral("x86_pkg_temp")) {
             for (int index = 1; index <= 32; ++index) {
-                const QString input =
-                    path + QStringLiteral("/temp%1_input").arg(index);
+                const QString input = path + QStringLiteral("/temp%1_input").arg(index);
                 if (!QFileInfo::exists(input))
                     continue;
                 m_cpuTemperaturePaths.push_back(input);
-                const QString label =
-                    readText(path + QStringLiteral("/temp%1_label").arg(index))
-                        .toLower();
+                const QString label
+                    = readText(path + QStringLiteral("/temp%1_label").arg(index)).toLower();
                 if (m_packageTemperaturePath.isEmpty()
                     && (label.contains(QStringLiteral("package"))
                         || label.contains(QStringLiteral("tdie"))
@@ -254,24 +233,21 @@ void LinuxCollector::loadStaticSystemInfo()
             }
         }
     }
-    if (m_packageTemperaturePath.isEmpty()
-        && !m_cpuTemperaturePaths.isEmpty()) {
+    if (m_packageTemperaturePath.isEmpty() && !m_cpuTemperaturePaths.isEmpty()) {
         m_packageTemperaturePath = m_cpuTemperaturePaths.first();
     }
 
     const QDir powercap(QStringLiteral("/sys/class/powercap"));
-    for (const QString &entry :
-         powercap.entryList(QStringList{QStringLiteral("intel-rapl:*")},
-                            QDir::Dirs | QDir::NoDotAndDotDot)) {
+    for (const QString &entry : powercap.entryList(QStringList{QStringLiteral("intel-rapl:*")},
+                                                   QDir::Dirs | QDir::NoDotAndDotDot)) {
         const QString path = powercap.absoluteFilePath(entry);
-        if (readText(path + QStringLiteral("/name")).contains(
-                QStringLiteral("package"), Qt::CaseInsensitive)
+        if (readText(path + QStringLiteral("/name"))
+                .contains(QStringLiteral("package"), Qt::CaseInsensitive)
             || m_packageEnergyPath.isEmpty()) {
             m_packageEnergyPath = path + QStringLiteral("/energy_uj");
-            m_packageEnergyRangePath =
-                path + QStringLiteral("/max_energy_range_uj");
-            if (readText(path + QStringLiteral("/name")).contains(
-                    QStringLiteral("package"), Qt::CaseInsensitive)) {
+            m_packageEnergyRangePath = path + QStringLiteral("/max_energy_range_uj");
+            if (readText(path + QStringLiteral("/name"))
+                    .contains(QStringLiteral("package"), Qt::CaseInsensitive)) {
                 break;
             }
         }
@@ -298,8 +274,7 @@ RawSnapshot LinuxCollector::collect(const ModuleSet &modules)
         result.diskTimestampNs = monotonicNsecs();
     }
     if (modules.contains(QStringLiteral("network"))) {
-        result.networkInterfaces =
-            collectNetwork(&result.defaultNetworkInterface, &result.errors);
+        result.networkInterfaces = collectNetwork(&result.defaultNetworkInterface, &result.errors);
         result.networkTimestampNs = monotonicNsecs();
     }
     if (modules.contains(QStringLiteral("battery")))
@@ -308,9 +283,7 @@ RawSnapshot LinuxCollector::collect(const ModuleSet &modules)
         if (!result.system.available)
             result.system = collectSystem(&result.errors);
         result.processes = collectProcesses(
-            result.memory.memTotalKiB * 1024ULL,
-            result.system.bootTimeMs,
-            &result.errors);
+            result.memory.memTotalKiB * 1024ULL, result.system.bootTimeMs, &result.errors);
         result.processTimestampNs = monotonicNsecs();
     }
     return result;
@@ -320,17 +293,14 @@ SystemInfo LinuxCollector::collectSystem(QVector<Error> *errors) const
 {
     SystemInfo result = m_staticSystem;
     bool uptimeOk = false;
-    const QByteArray uptimeContents =
-        readAll(QStringLiteral("/proc/uptime"), &uptimeOk);
+    const QByteArray uptimeContents = readAll(QStringLiteral("/proc/uptime"), &uptimeOk);
     bool numberOk = false;
-    const double uptime = uptimeContents.simplified().split(' ').value(0)
-                              .toDouble(&numberOk);
+    const double uptime = uptimeContents.simplified().split(' ').value(0).toDouble(&numberOk);
     if (uptimeOk && numberOk && uptime >= 0.0) {
         result.uptimeSeconds = static_cast<qint64>(uptime);
         if (result.bootTimeMs <= 0) {
-            result.bootTimeMs =
-                QDateTime::currentMSecsSinceEpoch()
-                - static_cast<qint64>(uptime * 1000.0);
+            result.bootTimeMs
+                = QDateTime::currentMSecsSinceEpoch() - static_cast<qint64>(uptime * 1000.0);
         }
     } else {
         errors->push_back({
@@ -348,8 +318,7 @@ RawCpuInfo LinuxCollector::collectCpu(QVector<Error> *errors) const
 {
     RawCpuInfo result;
     bool statOk = false;
-    result.counters =
-        parseProcStat(readAll(QStringLiteral("/proc/stat"), &statOk));
+    result.counters = parseProcStat(readAll(QStringLiteral("/proc/stat"), &statOk));
     if (!statOk || !result.counters.valid) {
         errors->push_back({
             QStringLiteral("cpu"),
@@ -360,29 +329,22 @@ RawCpuInfo LinuxCollector::collectCpu(QVector<Error> *errors) const
 
     QVector<double> frequencies;
     const QDir cpuDir(QStringLiteral("/sys/devices/system/cpu"));
-    const QStringList cpuEntries =
-        cpuDir.entryList(QStringList{QStringLiteral("cpu[0-9]*")},
-                         QDir::Dirs | QDir::NoDotAndDotDot);
+    const QStringList cpuEntries = cpuDir.entryList(QStringList{QStringLiteral("cpu[0-9]*")},
+                                                    QDir::Dirs | QDir::NoDotAndDotDot);
     for (const QString &entry : cpuEntries) {
-        const QString base = cpuDir.absoluteFilePath(entry)
-            + QStringLiteral("/cpufreq/");
-        OptionalNumber frequency =
-            readNumber(base + QStringLiteral("scaling_cur_freq"), 0.001);
+        const QString base = cpuDir.absoluteFilePath(entry) + QStringLiteral("/cpufreq/");
+        OptionalNumber frequency = readNumber(base + QStringLiteral("scaling_cur_freq"), 0.001);
         if (!frequency)
             frequency = readNumber(base + QStringLiteral("cpuinfo_cur_freq"), 0.001);
         if (frequency)
             frequencies.push_back(*frequency);
 
-        const OptionalNumber minimum =
-            readNumber(base + QStringLiteral("cpuinfo_min_freq"), 0.001);
-        const OptionalNumber maximum =
-            readNumber(base + QStringLiteral("cpuinfo_max_freq"), 0.001);
-        if (minimum
-            && (!result.frequencyMinMHz || *minimum < *result.frequencyMinMHz)) {
+        const OptionalNumber minimum = readNumber(base + QStringLiteral("cpuinfo_min_freq"), 0.001);
+        const OptionalNumber maximum = readNumber(base + QStringLiteral("cpuinfo_max_freq"), 0.001);
+        if (minimum && (!result.frequencyMinMHz || *minimum < *result.frequencyMinMHz)) {
             result.frequencyMinMHz = minimum;
         }
-        if (maximum
-            && (!result.frequencyMaxMHz || *maximum > *result.frequencyMaxMHz)) {
+        if (maximum && (!result.frequencyMaxMHz || *maximum > *result.frequencyMaxMHz)) {
             result.frequencyMaxMHz = maximum;
         }
     }
@@ -401,30 +363,25 @@ RawCpuInfo LinuxCollector::collectCpu(QVector<Error> *errors) const
             temperatures.push_back(*value);
     }
     if (!temperatures.isEmpty()) {
-        result.temperatureCelsius =
-            *std::max_element(temperatures.cbegin(), temperatures.cend());
+        result.temperatureCelsius = *std::max_element(temperatures.cbegin(), temperatures.cend());
     }
     if (!m_packageTemperaturePath.isEmpty()) {
-        const OptionalNumber package =
-            readNumber(m_packageTemperaturePath, 0.001);
+        const OptionalNumber package = readNumber(m_packageTemperaturePath, 0.001);
         if (package && *package > -100.0 && *package < 250.0)
             result.packageTemperatureCelsius = package;
     }
     if (!m_packageEnergyPath.isEmpty()) {
         bool energyOk = false;
-        result.packageEnergyMicroJoules =
-            readInteger(m_packageEnergyPath, &energyOk);
-        result.packageEnergyRangeMicroJoules =
-            readInteger(m_packageEnergyRangePath);
+        result.packageEnergyMicroJoules = readInteger(m_packageEnergyPath, &energyOk);
+        result.packageEnergyRangeMicroJoules = readInteger(m_packageEnergyRangePath);
         if (!energyOk && QFileInfo::exists(m_packageEnergyPath)) {
             const bool readable = QFileInfo(m_packageEnergyPath).isReadable();
             errors->push_back({
                 QStringLiteral("cpu"),
                 readable ? QStringLiteral("rapl_energy_read_failed")
                          : QStringLiteral("rapl_energy_permission_denied"),
-                QStringLiteral(
-                    "Intel RAPL is present but unavailable; direct access to "
-                    "energy_uj failed. Other system metrics remain available."),
+                QStringLiteral("Intel RAPL is present but unavailable; direct access to "
+                               "energy_uj failed. Other system metrics remain available."),
             });
         }
     }
@@ -436,8 +393,7 @@ RawCpuInfo LinuxCollector::collectCpu(QVector<Error> *errors) const
 MemoryCounters LinuxCollector::collectMemory(QVector<Error> *errors) const
 {
     bool ok = false;
-    const MemoryCounters result =
-        parseMeminfo(readAll(QStringLiteral("/proc/meminfo"), &ok));
+    const MemoryCounters result = parseMeminfo(readAll(QStringLiteral("/proc/meminfo"), &ok));
     if (!ok || !result.valid) {
         errors->push_back({
             QStringLiteral("memory"),

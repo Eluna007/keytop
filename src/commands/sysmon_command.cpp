@@ -98,8 +98,7 @@ bool parseModules(const QString &value, ModuleSet *modules, QString *error)
 {
     modules->clear();
     const ModuleSet supported = allModules();
-    const QStringList requested =
-        value.split(QLatin1Char(','), Qt::SkipEmptyParts);
+    const QStringList requested = value.split(QLatin1Char(','), Qt::SkipEmptyParts);
     if (requested.isEmpty()) {
         *error = QStringLiteral("--modules requires a comma-separated value");
         return false;
@@ -117,11 +116,8 @@ bool parseModules(const QString &value, ModuleSet *modules, QString *error)
     return true;
 }
 
-bool takeValue(const QStringList &arguments,
-               int *index,
-               const QString &option,
-               QString *value,
-               QString *error)
+bool takeValue(
+    const QStringList &arguments, int *index, const QString &option, QString *value, QString *error)
 {
     if (*index + 1 >= arguments.size()) {
         *error = QStringLiteral("%1 requires a value").arg(option);
@@ -131,9 +127,7 @@ bool takeValue(const QStringList &arguments,
     return true;
 }
 
-bool parseOptions(const QStringList &arguments,
-                  Options *options,
-                  QString *error)
+bool parseOptions(const QStringList &arguments, Options *options, QString *error)
 {
     for (int index = 0; index < arguments.size(); ++index) {
         const QString argument = arguments.at(index);
@@ -155,8 +149,7 @@ bool parseOptions(const QStringList &arguments,
             bool ok = false;
             const int interval = value.toInt(&ok);
             if (!ok || interval < 100 || interval > 60000) {
-                *error = QStringLiteral(
-                    "--interval must be between 100 and 60000 milliseconds");
+                *error = QStringLiteral("--interval must be between 100 and 60000 milliseconds");
                 return false;
             }
             options->intervalMs = interval;
@@ -166,8 +159,7 @@ bool parseOptions(const QStringList &arguments,
             bool ok = false;
             const int limit = value.toInt(&ok);
             if (!ok || limit < 1 || limit > 100000) {
-                *error =
-                    QStringLiteral("--limit must be between 1 and 100000");
+                *error = QStringLiteral("--limit must be between 1 and 100000");
                 return false;
             }
             options->limit = limit;
@@ -181,9 +173,9 @@ bool parseOptions(const QStringList &arguments,
                     QStringLiteral("pid"),
                     QStringLiteral("name"),
                     QStringLiteral("runtime"),
-                }.contains(options->sort)) {
-                *error = QStringLiteral(
-                    "--sort must be cpu, memory, pid, name, or runtime");
+                }
+                     .contains(options->sort)) {
+                *error = QStringLiteral("--sort must be cpu, memory, pid, name, or runtime");
                 return false;
             }
         } else if (argument == QStringLiteral("--filter")) {
@@ -202,15 +194,12 @@ bool parseOptions(const QStringList &arguments,
 
 bool needsDeltaSample(const ModuleSet &modules)
 {
-    return modules.contains(QStringLiteral("cpu"))
-        || modules.contains(QStringLiteral("disk"))
-        || modules.contains(QStringLiteral("network"))
-        || modules.contains(QStringLiteral("processes"));
+    return modules.contains(QStringLiteral("cpu")) || modules.contains(QStringLiteral("disk"))
+           || modules.contains(QStringLiteral("network"))
+           || modules.contains(QStringLiteral("processes"));
 }
 
-Snapshot sampledSnapshot(Sampler *sampler,
-                         const ModuleSet &modules,
-                         int warmupMs = 200)
+Snapshot sampledSnapshot(Sampler *sampler, const ModuleSet &modules, int warmupMs = 200)
 {
     Snapshot snapshot = sampler->sample(modules);
     if (needsDeltaSample(modules)) {
@@ -222,21 +211,20 @@ Snapshot sampledSnapshot(Sampler *sampler,
 
 void sortProcesses(QVector<ProcessInfo> *processes, const QString &sort)
 {
-    std::stable_sort(
-        processes->begin(),
-        processes->end(),
-        [&sort](const ProcessInfo &left, const ProcessInfo &right) {
-            if (sort == QStringLiteral("memory"))
-                return left.memoryBytes > right.memoryBytes;
-            if (sort == QStringLiteral("pid"))
-                return left.pid < right.pid;
-            if (sort == QStringLiteral("name"))
-                return left.name.compare(right.name, Qt::CaseInsensitive) < 0;
-            if (sort == QStringLiteral("runtime"))
-                return left.runtimeSeconds > right.runtimeSeconds;
-            return left.cpuUsagePercent.value_or(-1.0)
-                > right.cpuUsagePercent.value_or(-1.0);
-        });
+    std::stable_sort(processes->begin(),
+                     processes->end(),
+                     [&sort](const ProcessInfo &left, const ProcessInfo &right) {
+                         if (sort == QStringLiteral("memory"))
+                             return left.memoryBytes > right.memoryBytes;
+                         if (sort == QStringLiteral("pid"))
+                             return left.pid < right.pid;
+                         if (sort == QStringLiteral("name"))
+                             return left.name.compare(right.name, Qt::CaseInsensitive) < 0;
+                         if (sort == QStringLiteral("runtime"))
+                             return left.runtimeSeconds > right.runtimeSeconds;
+                         return left.cpuUsagePercent.value_or(-1.0)
+                                > right.cpuUsagePercent.value_or(-1.0);
+                     });
 }
 
 void filterProcesses(QVector<ProcessInfo> *processes, const QString &filter)
@@ -244,17 +232,15 @@ void filterProcesses(QVector<ProcessInfo> *processes, const QString &filter)
     if (filter.isEmpty())
         return;
     const QString needle = filter.toLower();
-    processes->erase(
-        std::remove_if(
-            processes->begin(),
-            processes->end(),
-            [&needle](const ProcessInfo &process) {
-                return !process.name.toLower().contains(needle)
-                    && !process.command.toLower().contains(needle)
-                    && !process.user.toLower().contains(needle)
-                    && !QString::number(process.pid).contains(needle);
-            }),
-        processes->end());
+    processes->erase(std::remove_if(processes->begin(),
+                                    processes->end(),
+                                    [&needle](const ProcessInfo &process) {
+                                        return !process.name.toLower().contains(needle)
+                                               && !process.command.toLower().contains(needle)
+                                               && !process.user.toLower().contains(needle)
+                                               && !QString::number(process.pid).contains(needle);
+                                    }),
+                     processes->end());
 }
 
 void treeProcesses(QVector<ProcessInfo> *processes)
@@ -265,8 +251,7 @@ void treeProcesses(QVector<ProcessInfo> *processes)
     for (const ProcessInfo &process : std::as_const(*processes))
         byPid.insert(process.pid, process);
     for (const ProcessInfo &process : std::as_const(*processes)) {
-        if (process.ppid <= 0 || process.ppid == process.pid
-            || !byPid.contains(process.ppid)) {
+        if (process.ppid <= 0 || process.ppid == process.pid || !byPid.contains(process.ppid)) {
             roots.push_back(process.pid);
         } else {
             children[process.ppid].push_back(process.pid);
@@ -276,19 +261,18 @@ void treeProcesses(QVector<ProcessInfo> *processes)
     QVector<ProcessInfo> ordered;
     ordered.reserve(processes->size());
     QSet<qint64> visited;
-    std::function<void(qint64, int)> append =
-        [&](qint64 pid, int depth) {
-            if (visited.contains(pid) || !byPid.contains(pid))
-                return;
-            visited.insert(pid);
-            ProcessInfo process = byPid.value(pid);
-            process.treeDepth = std::min(depth, 64);
-            ordered.push_back(process);
-            if (depth >= 64)
-                return;
-            for (qint64 child : std::as_const(children[pid]))
-                append(child, depth + 1);
-        };
+    std::function<void(qint64, int)> append = [&](qint64 pid, int depth) {
+        if (visited.contains(pid) || !byPid.contains(pid))
+            return;
+        visited.insert(pid);
+        ProcessInfo process = byPid.value(pid);
+        process.treeDepth = std::min(depth, 64);
+        ordered.push_back(process);
+        if (depth >= 64)
+            return;
+        for (qint64 child : std::as_const(children[pid]))
+            append(child, depth + 1);
+    };
     for (qint64 pid : std::as_const(roots))
         append(pid, 0);
     for (const ProcessInfo &process : std::as_const(*processes))
@@ -308,17 +292,14 @@ QString processTable(const QVector<ProcessInfo> &processes, bool tree)
                   .arg(QStringLiteral("COMMAND"));
     for (const ProcessInfo &process : processes) {
         const QString cpu = process.cpuUsagePercent
-            ? QLocale::c().toString(*process.cpuUsagePercent, 'f', 1)
-            : QStringLiteral("-");
+                                ? QLocale::c().toString(*process.cpuUsagePercent, 'f', 1)
+                                : QStringLiteral("-");
         const QString memory = process.memoryPercent
-            ? QLocale::c().toString(*process.memoryPercent, 'f', 1)
-            : QStringLiteral("-");
-        QString name = process.command.isEmpty()
-            ? process.name
-            : process.command;
+                                   ? QLocale::c().toString(*process.memoryPercent, 'f', 1)
+                                   : QStringLiteral("-");
+        QString name = process.command.isEmpty() ? process.name : process.command;
         if (tree && process.treeDepth > 0)
-            name.prepend(QString(process.treeDepth * 2, QLatin1Char(' '))
-                         + QStringLiteral("└─"));
+            name.prepend(QString(process.treeDepth * 2, QLatin1Char(' ')) + QStringLiteral("└─"));
         stream << QStringLiteral("%1 %2 %3 %4 %5\n")
                       .arg(QString::number(process.pid), -8)
                       .arg(cpu, -7)
@@ -331,12 +312,10 @@ QString processTable(const QVector<ProcessInfo> &processes, bool tree)
 
 CommandResult runStream(const Options &options)
 {
-    const bool jsonl = options.format.isEmpty()
-        || options.format == QStringLiteral("jsonl")
-        || options.format == QStringLiteral("json");
+    const bool jsonl = options.format.isEmpty() || options.format == QStringLiteral("jsonl")
+                       || options.format == QStringLiteral("json");
     if (!jsonl && options.format != QStringLiteral("text"))
-        return usageError(QStringLiteral(
-            "stream --format must be jsonl or text"));
+        return usageError(QStringLiteral("stream --format must be jsonl or text"));
 
     StreamSignalGuard signalGuard;
     Sampler sampler;
@@ -348,12 +327,10 @@ CommandResult runStream(const Options &options)
     cadence.start();
     while (!streamStopRequested) {
         const Snapshot snapshot = sampler.sample(options.modules);
-        const QByteArray bytes = jsonl
-            ? snapshotToJsonLine(snapshot)
-            : (humanSnapshot(snapshot) + QLatin1Char('\n')).toUtf8();
+        const QByteArray bytes = jsonl ? snapshotToJsonLine(snapshot)
+                                       : (humanSnapshot(snapshot) + QLatin1Char('\n')).toUtf8();
         if (output.write(bytes) != bytes.size() || !output.flush())
-            return {3, false, {}, QStringLiteral("Unable to write sysmon stream"),
-                    true, false};
+            return {3, false, {}, QStringLiteral("Unable to write sysmon stream"), true, false};
 
         // Do not try to "catch up" with back-to-back collection if a slow
         // sensor probe already exceeded the requested interval.
@@ -362,8 +339,7 @@ CommandResult runStream(const Options &options)
             const qint64 remaining = nextDeadlineMs - cadence.elapsed();
             if (remaining <= 0)
                 break;
-            QThread::msleep(
-                static_cast<unsigned long>(std::min<qint64>(remaining, 50)));
+            QThread::msleep(static_cast<unsigned long>(std::min<qint64>(remaining, 50)));
         }
     }
     return {0, false, {}, {}, false, true};
@@ -385,11 +361,9 @@ CommandResult SysmonCommand::run(const QStringList &arguments) const
         QString error;
         if (!parseOptions(arguments.mid(1), &options, &error))
             return usageError(error);
-        if (!options.format.isEmpty()
-            && options.format != QStringLiteral("json")
+        if (!options.format.isEmpty() && options.format != QStringLiteral("json")
             && options.format != QStringLiteral("text")) {
-            return usageError(QStringLiteral(
-                "modules output --format must be json or text"));
+            return usageError(QStringLiteral("modules output --format must be json or text"));
         }
         if (options.format == QStringLiteral("json")) {
             QJsonArray modules;
@@ -410,8 +384,7 @@ CommandResult SysmonCommand::run(const QStringList &arguments) const
             0,
             false,
             {},
-            QStringLiteral(
-                "system\ncpu\nmemory\ngpu\ndisk\nnetwork\nbattery\nprocesses"),
+            QStringLiteral("system\ncpu\nmemory\ngpu\ndisk\nnetwork\nbattery\nprocesses"),
             false,
         };
     }
@@ -424,12 +397,10 @@ CommandResult SysmonCommand::run(const QStringList &arguments) const
 
     QString error;
     if (!parseOptions(arguments.mid(1), &options, &error)) {
-        const bool json =
-            arguments.contains(QStringLiteral("--json"))
-            || (arguments.contains(QStringLiteral("--format"))
-                && arguments.value(
-                       arguments.indexOf(QStringLiteral("--format")) + 1)
-                    .startsWith(QStringLiteral("json")));
+        const bool json = arguments.contains(QStringLiteral("--json"))
+                          || (arguments.contains(QStringLiteral("--format"))
+                              && arguments.value(arguments.indexOf(QStringLiteral("--format")) + 1)
+                                     .startsWith(QStringLiteral("json")));
         return json ? jsonUsageError(error) : usageError(error);
     }
 
@@ -450,20 +421,16 @@ CommandResult SysmonCommand::run(const QStringList &arguments) const
             QStringLiteral("memory"),
             QStringLiteral("processes"),
         };
-    else if (subcommand != QStringLiteral("snapshot")
-             && subcommand != QStringLiteral("stream")) {
-        return usageError(
-            QStringLiteral("Unknown sysmon command: %1").arg(subcommand));
+    else if (subcommand != QStringLiteral("snapshot") && subcommand != QStringLiteral("stream")) {
+        return usageError(QStringLiteral("Unknown sysmon command: %1").arg(subcommand));
     }
 
     if (subcommand == QStringLiteral("stream"))
         return runStream(options);
 
-    if (!options.format.isEmpty()
-        && options.format != QStringLiteral("json")
+    if (!options.format.isEmpty() && options.format != QStringLiteral("json")
         && options.format != QStringLiteral("text")) {
-        return usageError(QStringLiteral(
-            "snapshot output --format must be json or text"));
+        return usageError(QStringLiteral("snapshot output --format must be json or text"));
     }
 
     Sampler sampler;
@@ -473,8 +440,7 @@ CommandResult SysmonCommand::run(const QStringList &arguments) const
         sortProcesses(&snapshot.processes, options.sort);
         if (options.tree)
             treeProcesses(&snapshot.processes);
-        if (options.limit > 0
-            && snapshot.processes.size() > options.limit) {
+        if (options.limit > 0 && snapshot.processes.size() > options.limit) {
             snapshot.processes.resize(options.limit);
         }
     }

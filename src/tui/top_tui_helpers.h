@@ -21,11 +21,8 @@ struct CoreGridLayout {
     int visibleCount = 0;
 };
 
-CoreGridLayout calculateCoreGridLayout(int width,
-                                       int height,
-                                       int coreCount,
-                                       int largestCoreId,
-                                       int requestedPage);
+CoreGridLayout
+calculateCoreGridLayout(int width, int height, int coreCount, int largestCoreId, int requestedPage);
 
 struct PageLayout {
     int page = 0;
@@ -34,13 +31,9 @@ struct PageLayout {
     int visibleCount = 0;
 };
 
-PageLayout calculatePageLayout(int itemCount,
-                               int itemsPerPage,
-                               int requestedPage);
+PageLayout calculatePageLayout(int itemCount, int itemsPerPage, int requestedPage);
 
-QString borderlessMeter(const std::optional<double> &percent,
-                        int width,
-                        bool unicode);
+QString borderlessMeter(const std::optional<double> &percent, int width, bool unicode);
 
 enum LineConnection : unsigned char {
     ConnectNone = 0,
@@ -60,10 +53,7 @@ struct LineRaster {
     bool pointAt(int x, int y) const;
 };
 
-LineRaster rasterizeLine(const std::deque<double> &history,
-                         int width,
-                         int height,
-                         double maximum);
+LineRaster rasterizeLine(const std::deque<double> &history, int width, int height, double maximum);
 
 int nextGraphSource(int currentSource, int gpuCount);
 

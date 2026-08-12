@@ -74,14 +74,11 @@ private:
     MemoryCounters collectMemory(QVector<Error> *errors) const;
     QVector<GpuInfo> collectGpus(QVector<Error> *errors);
     QVector<RawDiskInfo> collectDisks(QVector<Error> *errors) const;
-    QVector<RawNetworkInterfaceInfo> collectNetwork(
-        QString *defaultInterface,
-        QVector<Error> *errors) const;
+    QVector<RawNetworkInterfaceInfo> collectNetwork(QString *defaultInterface,
+                                                    QVector<Error> *errors) const;
     BatteryInfo collectBattery(QVector<Error> *errors) const;
-    QVector<RawProcessInfo> collectProcesses(
-        quint64 totalMemoryBytes,
-        qint64 bootTimeMs,
-        QVector<Error> *errors) const;
+    QVector<RawProcessInfo>
+    collectProcesses(quint64 totalMemoryBytes, qint64 bootTimeMs, QVector<Error> *errors) const;
 
     void loadStaticSystemInfo();
     QVector<GpuInfo> collectNvidiaGpus(QVector<Error> *errors);

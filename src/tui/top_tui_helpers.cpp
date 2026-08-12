@@ -25,21 +25,14 @@ void markPoint(LineRaster &raster, int x, int y)
         raster.points.at(index) = true;
 }
 
-void addConnection(LineRaster &raster,
-                   int x,
-                   int y,
-                   LineConnection connection)
+void addConnection(LineRaster &raster, int x, int y, LineConnection connection)
 {
     const int index = rasterIndex(raster, x, y);
     if (index >= 0)
         raster.connections.at(index) |= connection;
 }
 
-void connectAdjacent(LineRaster &raster,
-                     int fromX,
-                     int fromY,
-                     int toX,
-                     int toY)
+void connectAdjacent(LineRaster &raster, int fromX, int fromY, int toX, int toY)
 {
     if (fromX == toX) {
         if (fromY < toY) {
@@ -65,53 +58,40 @@ void connectAdjacent(LineRaster &raster,
 
 } // namespace
 
-CoreGridLayout calculateCoreGridLayout(int width,
-                                       int height,
-                                       int coreCount,
-                                       int largestCoreId,
-                                       int requestedPage)
+CoreGridLayout
+calculateCoreGridLayout(int width, int height, int coreCount, int largestCoreId, int requestedPage)
 {
     CoreGridLayout result;
     if (width <= 0 || height <= 0 || coreCount <= 0)
         return result;
 
-    const int labelDigits =
-        std::max(
-            2,
-            static_cast<int>(
-                QString::number(std::max(0, largestCoreId)).size()));
+    const int labelDigits
+        = std::max(2, static_cast<int>(QString::number(std::max(0, largestCoreId)).size()));
     result.labelWidth = 1 + labelDigits;
 
     constexpr int minimumMeterWidth = 5;
     constexpr int percentWidth = 4;
     constexpr int interCellGap = 1;
     constexpr int internalGaps = 2;
-    const int minimumCellWidth =
-        result.labelWidth + minimumMeterWidth + percentWidth
-        + internalGaps + interCellGap;
+    const int minimumCellWidth
+        = result.labelWidth + minimumMeterWidth + percentWidth + internalGaps + interCellGap;
 
     const int maximumColumns = std::max(1, width / minimumCellWidth);
-    const int neededColumns =
-        std::max(1, divideRoundUp(coreCount, height));
+    const int neededColumns = std::max(1, divideRoundUp(coreCount, height));
     result.columns = std::min(neededColumns, maximumColumns);
     result.rows = height;
     result.cellWidth = std::max(1, width / result.columns);
-    result.meterWidth =
-        std::max(0,
-                 result.cellWidth - interCellGap - result.labelWidth
-                     - percentWidth - internalGaps);
+    result.meterWidth = std::max(
+        0, result.cellWidth - interCellGap - result.labelWidth - percentWidth - internalGaps);
     result.capacity = std::max(1, result.columns * result.rows);
     result.pageCount = std::max(1, divideRoundUp(coreCount, result.capacity));
     result.page = std::clamp(requestedPage, 0, result.pageCount - 1);
     result.firstIndex = result.page * result.capacity;
-    result.visibleCount =
-        std::min(result.capacity, coreCount - result.firstIndex);
+    result.visibleCount = std::min(result.capacity, coreCount - result.firstIndex);
     return result;
 }
 
-PageLayout calculatePageLayout(int itemCount,
-                               int itemsPerPage,
-                               int requestedPage)
+PageLayout calculatePageLayout(int itemCount, int itemsPerPage, int requestedPage)
 {
     PageLayout result;
     if (itemCount <= 0 || itemsPerPage <= 0)
@@ -120,14 +100,11 @@ PageLayout calculatePageLayout(int itemCount,
     result.pageCount = std::max(1, divideRoundUp(itemCount, itemsPerPage));
     result.page = std::clamp(requestedPage, 0, result.pageCount - 1);
     result.firstIndex = result.page * itemsPerPage;
-    result.visibleCount =
-        std::min(itemsPerPage, itemCount - result.firstIndex);
+    result.visibleCount = std::min(itemsPerPage, itemCount - result.firstIndex);
     return result;
 }
 
-QString borderlessMeter(const std::optional<double> &percent,
-                        int width,
-                        bool unicode)
+QString borderlessMeter(const std::optional<double> &percent, int width, bool unicode)
 {
     if (width <= 0)
         return {};
@@ -137,17 +114,15 @@ QString borderlessMeter(const std::optional<double> &percent,
     if (!percent || !std::isfinite(*percent))
         return empty.repeated(width);
 
-    const double normalized =
-        std::clamp(*percent, 0.0, 100.0) / 100.0;
-    const int filled =
-        std::clamp(static_cast<int>(std::lround(normalized * width)), 0, width);
+    const double normalized = std::clamp(*percent, 0.0, 100.0) / 100.0;
+    const int filled = std::clamp(static_cast<int>(std::lround(normalized * width)), 0, width);
     return full.repeated(filled) + empty.repeated(width - filled);
 }
 
 unsigned char LineRaster::connectionAt(int x, int y) const
 {
     const int index = rasterIndex(*this, x, y);
-    return index >= 0 ? connections.at(index) : ConnectNone;
+    return index >= 0 ? connections.at(index) : static_cast<unsigned char>(ConnectNone);
 }
 
 bool LineRaster::pointAt(int x, int y) const
@@ -156,10 +131,7 @@ bool LineRaster::pointAt(int x, int y) const
     return index >= 0 && points.at(index);
 }
 
-LineRaster rasterizeLine(const std::deque<double> &history,
-                         int width,
-                         int height,
-                         double maximum)
+LineRaster rasterizeLine(const std::deque<double> &history, int width, int height, double maximum)
 {
     LineRaster result;
     result.width = std::max(0, width);
@@ -172,8 +144,7 @@ LineRaster rasterizeLine(const std::deque<double> &history,
         return result;
 
     maximum = std::max(maximum, 0.000001);
-    const int sampleCount =
-        std::min(result.width, static_cast<int>(history.size()));
+    const int sampleCount = std::min(result.width, static_cast<int>(history.size()));
     const int startColumn = result.width - sampleCount;
     const auto firstSample = history.end() - sampleCount;
 
@@ -182,10 +153,8 @@ LineRaster rasterizeLine(const std::deque<double> &history,
     for (auto iterator = firstSample; iterator != history.end(); ++iterator) {
         const double value = std::isfinite(*iterator) ? *iterator : 0.0;
         const double ratio = std::clamp(value / maximum, 0.0, 1.0);
-        rows.push_back(
-            result.height - 1
-            - static_cast<int>(
-                std::lround(ratio * std::max(0, result.height - 1))));
+        rows.push_back(result.height - 1
+                       - static_cast<int>(std::lround(ratio * std::max(0, result.height - 1))));
     }
 
     for (int index = 0; index < sampleCount; ++index)
@@ -197,8 +166,7 @@ LineRaster rasterizeLine(const std::deque<double> &history,
         const int previousY = rows.at(index - 1);
         const int currentY = rows.at(index);
 
-        connectAdjacent(
-            result, previousX, previousY, currentX, previousY);
+        connectAdjacent(result, previousX, previousY, currentX, previousY);
         const int direction = currentY >= previousY ? 1 : -1;
         for (int y = previousY; y != currentY; y += direction)
             connectAdjacent(result, currentX, y, currentX, y + direction);
@@ -219,8 +187,7 @@ int adjustedRefreshInterval(int currentIntervalMs, int deltaMs)
 {
     constexpr int minimumIntervalMs = 250;
     constexpr int maximumIntervalMs = 60000;
-    return std::clamp(
-        currentIntervalMs + deltaMs, minimumIntervalMs, maximumIntervalMs);
+    return std::clamp(currentIntervalMs + deltaMs, minimumIntervalMs, maximumIntervalMs);
 }
 
 int resolveProcessSelection(bool explicitlySelected,
@@ -232,15 +199,12 @@ int resolveProcessSelection(bool explicitlySelected,
         return 0;
 
     if (previousPid > 0) {
-        const auto restored =
-            std::find(orderedPids.begin(), orderedPids.end(), previousPid);
+        const auto restored = std::find(orderedPids.begin(), orderedPids.end(), previousPid);
         if (restored != orderedPids.end())
-            return static_cast<int>(
-                std::distance(orderedPids.begin(), restored));
+            return static_cast<int>(std::distance(orderedPids.begin(), restored));
     }
 
-    return std::clamp(
-        previousIndex, 0, static_cast<int>(orderedPids.size()) - 1);
+    return std::clamp(previousIndex, 0, static_cast<int>(orderedPids.size()) - 1);
 }
 
 } // namespace Clavis::TopTuiDetail

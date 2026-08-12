@@ -49,9 +49,8 @@ OptionalNumber readDpmFrequencyMHz(const QString &path)
     if (text.isEmpty())
         return std::nullopt;
 
-    const QRegularExpression pattern(
-        QStringLiteral(R"((\d+(?:\.\d+)?)\s*MHz\b)"),
-        QRegularExpression::CaseInsensitiveOption);
+    const QRegularExpression pattern(QStringLiteral(R"((\d+(?:\.\d+)?)\s*MHz\b)"),
+                                     QRegularExpression::CaseInsensitiveOption);
     OptionalNumber fallback;
     const QStringList lines = text.split(QLatin1Char('\n'));
     for (const QString &line : lines) {
@@ -86,8 +85,7 @@ OptionalNumber parseNvidiaNumber(const QString &text)
 {
     const QString value = text.trimmed();
     if (value.isEmpty() || value.compare(QStringLiteral("N/A"), Qt::CaseInsensitive) == 0
-        || value.compare(QStringLiteral("[Not Supported]"),
-                         Qt::CaseInsensitive) == 0) {
+        || value.compare(QStringLiteral("[Not Supported]"), Qt::CaseInsensitive) == 0) {
         return std::nullopt;
     }
     bool ok = false;
@@ -111,16 +109,13 @@ QString blockDeviceCursorKey(const QString &name)
     if (name.isEmpty())
         return {};
 
-    const QString blockPath =
-        QStringLiteral("/sys/class/block/%1").arg(name);
+    const QString blockPath = QStringLiteral("/sys/class/block/%1").arg(name);
     QString identityPath = blockPath;
     if (QFileInfo::exists(blockPath + QStringLiteral("/partition"))) {
         const QString canonical = QFileInfo(blockPath).canonicalFilePath();
-        const QString parentName =
-            QFileInfo(QFileInfo(canonical).path()).fileName();
+        const QString parentName = QFileInfo(QFileInfo(canonical).path()).fileName();
         if (!parentName.isEmpty())
-            identityPath =
-                QStringLiteral("/sys/class/block/%1").arg(parentName);
+            identityPath = QStringLiteral("/sys/class/block/%1").arg(parentName);
     }
 
     QString generation = readText(identityPath + QStringLiteral("/diskseq"));
@@ -129,25 +124,20 @@ QString blockDeviceCursorKey(const QString &name)
     if (generation.isEmpty())
         generation = readText(identityPath + QStringLiteral("/device/serial"));
 
-    const QString fallback =
-        QFileInfo(identityPath).canonicalFilePath()
-        + QLatin1Char('|')
-        + readText(identityPath + QStringLiteral("/dev"))
-        + QLatin1Char('|')
-        + QString::fromUtf8(
-              readAll(identityPath + QStringLiteral("/uevent"))).trimmed();
+    const QString fallback
+        = QFileInfo(identityPath).canonicalFilePath() + QLatin1Char('|')
+          + readText(identityPath + QStringLiteral("/dev")) + QLatin1Char('|')
+          + QString::fromUtf8(readAll(identityPath + QStringLiteral("/uevent"))).trimmed();
     return composeDeviceCursorKey(name, generation, fallback);
 }
 
 bool isPseudoFilesystem(const QByteArray &filesystem)
 {
     static const QSet<QByteArray> pseudo = {
-        "autofs",       "bpf",         "cgroup",      "cgroup2",
-        "configfs",     "debugfs",     "devpts",      "devtmpfs",
-        "efivarfs",     "fusectl",     "hugetlbfs",   "mqueue",
-        "nsfs",         "overlay",     "proc",        "pstore",
-        "ramfs",        "securityfs",  "selinuxfs",   "squashfs",
-        "sysfs",        "tmpfs",       "tracefs",
+        "autofs",    "bpf",      "cgroup",   "cgroup2", "configfs",  "debugfs",
+        "devpts",    "devtmpfs", "efivarfs", "fusectl", "hugetlbfs", "mqueue",
+        "nsfs",      "overlay",  "proc",     "pstore",  "ramfs",     "securityfs",
+        "selinuxfs", "squashfs", "sysfs",    "tmpfs",   "tracefs",
     };
     return pseudo.contains(filesystem);
 }
@@ -155,11 +145,9 @@ bool isPseudoFilesystem(const QByteArray &filesystem)
 bool isAcType(const QString &type)
 {
     const QString lower = type.toLower();
-    return lower == QStringLiteral("mains")
-        || lower == QStringLiteral("usb")
-        || lower == QStringLiteral("usb_c")
-        || lower == QStringLiteral("usb_pd")
-        || lower == QStringLiteral("wireless");
+    return lower == QStringLiteral("mains") || lower == QStringLiteral("usb")
+           || lower == QStringLiteral("usb_c") || lower == QStringLiteral("usb_pd")
+           || lower == QStringLiteral("wireless");
 }
 
 } // namespace
@@ -171,11 +159,9 @@ QVector<GpuInfo> LinuxCollector::collectNvidiaGpus(QVector<Error> *errors)
 
     const auto finishProbe = [this, errors]() {
         const QProcess::ProcessError processError = m_nvidiaProcess.error();
-        const bool failedToStart =
-            processError == QProcess::FailedToStart;
-        const bool succeeded =
-            m_nvidiaProcess.exitStatus() == QProcess::NormalExit
-            && m_nvidiaProcess.exitCode() == 0;
+        const bool failedToStart = processError == QProcess::FailedToStart;
+        const bool succeeded = m_nvidiaProcess.exitStatus() == QProcess::NormalExit
+                               && m_nvidiaProcess.exitCode() == 0;
 
         m_nvidiaProbePending = false;
         m_nvidiaProbeAttempted = true;
@@ -218,12 +204,10 @@ QVector<GpuInfo> LinuxCollector::collectNvidiaGpus(QVector<Error> *errors)
             const OptionalNumber totalMiB = parseNvidiaNumber(fields.at(6));
             const OptionalNumber usedMiB = parseNvidiaNumber(fields.at(7));
             if (totalMiB) {
-                gpu.vramTotalBytes =
-                    static_cast<qint64>(*totalMiB * 1024.0 * 1024.0);
+                gpu.vramTotalBytes = static_cast<qint64>(*totalMiB * 1024.0 * 1024.0);
             }
             if (usedMiB) {
-                gpu.vramUsedBytes =
-                    static_cast<qint64>(*usedMiB * 1024.0 * 1024.0);
+                gpu.vramUsedBytes = static_cast<qint64>(*usedMiB * 1024.0 * 1024.0);
             }
             gpu.powerWatts = parseNvidiaNumber(fields.at(8));
             gpu.frequencyMHz = parseNvidiaNumber(fields.at(9));
@@ -251,8 +235,7 @@ QVector<GpuInfo> LinuxCollector::collectNvidiaGpus(QVector<Error> *errors)
             return m_cachedNvidiaGpus;
         }
 
-        if (m_nvidiaProbeTimer.isValid()
-            && m_nvidiaProbeTimer.elapsed() >= 1500) {
+        if (m_nvidiaProbeTimer.isValid() && m_nvidiaProbeTimer.elapsed() >= 1500) {
             m_nvidiaProcess.kill();
             m_nvidiaProcess.waitForFinished(500);
             m_nvidiaProbePending = false;
@@ -270,18 +253,16 @@ QVector<GpuInfo> LinuxCollector::collectNvidiaGpus(QVector<Error> *errors)
         return m_cachedNvidiaGpus;
     }
 
-    if (m_nvidiaProbeAttempted
-        && m_nvidiaRefreshTimer.isValid()
+    if (m_nvidiaProbeAttempted && m_nvidiaRefreshTimer.isValid()
         && m_nvidiaRefreshTimer.elapsed() < 5000) {
         return m_cachedNvidiaGpus;
     }
 
     m_nvidiaProcess.setProgram(m_nvidiaProgram);
     m_nvidiaProcess.setArguments({
-        QStringLiteral(
-            "--query-gpu=index,pci.bus_id,name,driver_version,utilization.gpu,"
-            "temperature.gpu,memory.total,memory.used,power.draw,"
-            "clocks.current.graphics"),
+        QStringLiteral("--query-gpu=index,pci.bus_id,name,driver_version,utilization.gpu,"
+                       "temperature.gpu,memory.total,memory.used,power.draw,"
+                       "clocks.current.graphics"),
         QStringLiteral("--format=csv,noheader,nounits"),
     });
     m_nvidiaProcess.setProcessChannelMode(QProcess::SeparateChannels);
@@ -310,15 +291,14 @@ QVector<GpuInfo> LinuxCollector::collectGpus(QVector<Error> *errors)
     for (const QString &entry : drm.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
         if (!cardPattern.match(entry).hasMatch())
             continue;
-        const QString devicePath = drm.absoluteFilePath(entry)
-            + QStringLiteral("/device");
+        const QString devicePath = drm.absoluteFilePath(entry) + QStringLiteral("/device");
         if (!QFileInfo::exists(devicePath))
             continue;
 
         const QString rawVendor = readText(devicePath + QStringLiteral("/vendor"));
         const QString vendor = vendorName(rawVendor);
-        const QList<QByteArray> ueventLines =
-            readAll(devicePath + QStringLiteral("/uevent")).split('\n');
+        const QList<QByteArray> ueventLines
+            = readAll(devicePath + QStringLiteral("/uevent")).split('\n');
         QString pciId;
         QString driver;
         for (const QByteArray &raw : ueventLines) {
@@ -329,8 +309,7 @@ QVector<GpuInfo> LinuxCollector::collectGpus(QVector<Error> *errors)
                 driver = line.mid(7).trimmed();
         }
         if (vendor == QStringLiteral("NVIDIA")
-            && (nvidiaPciIds.contains(pciId.toLower())
-                || !result.isEmpty())) {
+            && (nvidiaPciIds.contains(pciId.toLower()) || !result.isEmpty())) {
             continue;
         }
 
@@ -340,52 +319,39 @@ QVector<GpuInfo> LinuxCollector::collectGpus(QVector<Error> *errors)
         gpu.pciId = pciId;
         gpu.vendor = vendor.isEmpty() ? QStringLiteral("Unknown") : vendor;
         gpu.driver = driver;
-        gpu.name = driver.isEmpty()
-            ? QStringLiteral("%1 GPU").arg(gpu.vendor)
-            : QStringLiteral("%1 (%2)").arg(gpu.vendor, driver);
+        gpu.name = driver.isEmpty() ? QStringLiteral("%1 GPU").arg(gpu.vendor)
+                                    : QStringLiteral("%1 (%2)").arg(gpu.vendor, driver);
 
-        gpu.utilizationPercent =
-            readNumber(devicePath + QStringLiteral("/gpu_busy_percent"));
-        gpu.frequencyMHz =
-            readNumber(devicePath + QStringLiteral("/gt_cur_freq_mhz"));
+        gpu.utilizationPercent = readNumber(devicePath + QStringLiteral("/gpu_busy_percent"));
+        gpu.frequencyMHz = readNumber(devicePath + QStringLiteral("/gt_cur_freq_mhz"));
         if (!gpu.frequencyMHz) {
-            gpu.frequencyMHz =
-                readDpmFrequencyMHz(
-                    devicePath + QStringLiteral("/pp_dpm_sclk"));
+            gpu.frequencyMHz = readDpmFrequencyMHz(devicePath + QStringLiteral("/pp_dpm_sclk"));
         }
 
-        OptionalInteger total =
-            readInteger(devicePath + QStringLiteral("/mem_info_vram_total"));
-        OptionalInteger used =
-            readInteger(devicePath + QStringLiteral("/mem_info_vram_used"));
+        OptionalInteger total = readInteger(devicePath + QStringLiteral("/mem_info_vram_total"));
+        OptionalInteger used = readInteger(devicePath + QStringLiteral("/mem_info_vram_used"));
         gpu.vramTotalBytes = total;
         gpu.vramUsedBytes = used;
 
         const QDir hwmon(devicePath + QStringLiteral("/hwmon"));
-        const QStringList hwmons =
-            hwmon.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+        const QStringList hwmons = hwmon.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
         for (const QString &hwmonName : hwmons) {
             const QString hwmonPath = hwmon.absoluteFilePath(hwmonName);
             if (!gpu.temperatureCelsius)
-                gpu.temperatureCelsius =
-                    readNumber(hwmonPath + QStringLiteral("/temp1_input"), 0.001);
+                gpu.temperatureCelsius
+                    = readNumber(hwmonPath + QStringLiteral("/temp1_input"), 0.001);
             if (!gpu.powerWatts) {
-                gpu.powerWatts =
-                    readNumber(hwmonPath + QStringLiteral("/power1_average"),
-                               0.000001);
+                gpu.powerWatts
+                    = readNumber(hwmonPath + QStringLiteral("/power1_average"), 0.000001);
                 if (!gpu.powerWatts) {
-                    gpu.powerWatts =
-                        readNumber(hwmonPath + QStringLiteral("/power1_input"),
-                                   0.000001);
+                    gpu.powerWatts
+                        = readNumber(hwmonPath + QStringLiteral("/power1_input"), 0.000001);
                 }
             }
         }
-        gpu.supported = gpu.utilizationPercent.has_value()
-            || gpu.temperatureCelsius.has_value()
-            || gpu.vramTotalBytes.has_value()
-            || gpu.vramUsedBytes.has_value()
-            || gpu.powerWatts.has_value()
-            || gpu.frequencyMHz.has_value();
+        gpu.supported = gpu.utilizationPercent.has_value() || gpu.temperatureCelsius.has_value()
+                        || gpu.vramTotalBytes.has_value() || gpu.vramUsedBytes.has_value()
+                        || gpu.powerWatts.has_value() || gpu.frequencyMHz.has_value();
         result.push_back(gpu);
     }
 
@@ -398,20 +364,17 @@ QVector<RawDiskInfo> LinuxCollector::collectDisks(QVector<Error> *errors) const
     QSet<QString> seenMounts;
     const QList<QStorageInfo> volumes = QStorageInfo::mountedVolumes();
     for (const QStorageInfo &storage : volumes) {
-        if (!storage.isValid() || !storage.isReady()
-            || storage.rootPath().isEmpty()
+        if (!storage.isValid() || !storage.isReady() || storage.rootPath().isEmpty()
             || seenMounts.contains(storage.rootPath())
             || isPseudoFilesystem(storage.fileSystemType())) {
             continue;
         }
         const QString mountPoint = storage.rootPath();
-        const int pathDepth =
-            mountPoint.count(QLatin1Char('/'))
-            - (mountPoint.endsWith(QLatin1Char('/')) ? 1 : 0);
-        const bool conventionalExternal =
-            mountPoint.startsWith(QStringLiteral("/mnt/"))
-            || mountPoint.startsWith(QStringLiteral("/media/"))
-            || mountPoint.startsWith(QStringLiteral("/run/media/"));
+        const int pathDepth
+            = mountPoint.count(QLatin1Char('/')) - (mountPoint.endsWith(QLatin1Char('/')) ? 1 : 0);
+        const bool conventionalExternal = mountPoint.startsWith(QStringLiteral("/mnt/"))
+                                          || mountPoint.startsWith(QStringLiteral("/media/"))
+                                          || mountPoint.startsWith(QStringLiteral("/run/media/"));
         // Sandboxes and container runtimes commonly bind individual project
         // directories. They are not useful storage volumes, while ordinary
         // top-level mounts such as /home and /boot remain visible.
@@ -424,25 +387,21 @@ QVector<RawDiskInfo> LinuxCollector::collectDisks(QVector<Error> *errors) const
         disk.info.mountPoint = storage.rootPath();
         disk.info.filesystem = QString::fromUtf8(storage.fileSystemType());
         disk.info.device = QString::fromUtf8(storage.device());
-        disk.info.totalBytes = static_cast<quint64>(
-            std::max<qint64>(0, storage.bytesTotal()));
-        disk.info.freeBytes = static_cast<quint64>(
-            std::max<qint64>(0, storage.bytesAvailable()));
+        disk.info.totalBytes = static_cast<quint64>(std::max<qint64>(0, storage.bytesTotal()));
+        disk.info.freeBytes = static_cast<quint64>(std::max<qint64>(0, storage.bytesAvailable()));
         if (disk.info.freeBytes > disk.info.totalBytes)
             disk.info.freeBytes = disk.info.totalBytes;
         disk.info.usedBytes = disk.info.totalBytes - disk.info.freeBytes;
         if (disk.info.totalBytes > 0) {
-            disk.info.usagePercent =
-                static_cast<double>(disk.info.usedBytes) * 100.0
-                / static_cast<double>(disk.info.totalBytes);
+            disk.info.usagePercent = static_cast<double>(disk.info.usedBytes) * 100.0
+                                     / static_cast<double>(disk.info.totalBytes);
         }
 
         const QString blockName = blockDeviceName(storage.device());
         disk.counterKey = blockDeviceCursorKey(blockName);
         if (!blockName.isEmpty()) {
             disk.counters = parseDiskStatLine(
-                readAll(QStringLiteral("/sys/class/block/%1/stat")
-                            .arg(blockName)));
+                readAll(QStringLiteral("/sys/class/block/%1/stat").arg(blockName)));
         }
         result.push_back(disk);
     }
@@ -453,8 +412,7 @@ QVector<RawDiskInfo> LinuxCollector::collectDisks(QVector<Error> *errors) const
             QStringLiteral("No meaningful mounted filesystems were found"),
         });
     }
-    std::sort(result.begin(), result.end(), [](const RawDiskInfo &left,
-                                               const RawDiskInfo &right) {
+    std::sort(result.begin(), result.end(), [](const RawDiskInfo &left, const RawDiskInfo &right) {
         if (left.info.mountPoint == QStringLiteral("/"))
             return true;
         if (right.info.mountPoint == QStringLiteral("/"))
@@ -464,13 +422,12 @@ QVector<RawDiskInfo> LinuxCollector::collectDisks(QVector<Error> *errors) const
     return result;
 }
 
-QVector<RawNetworkInterfaceInfo> LinuxCollector::collectNetwork(
-    QString *defaultInterface,
-    QVector<Error> *errors) const
+QVector<RawNetworkInterfaceInfo> LinuxCollector::collectNetwork(QString *defaultInterface,
+                                                                QVector<Error> *errors) const
 {
     bool ok = false;
-    const QHash<QString, NetworkCounter> counters =
-        parseProcNetDev(readAll(QStringLiteral("/proc/net/dev"), &ok));
+    const QHash<QString, NetworkCounter> counters
+        = parseProcNetDev(readAll(QStringLiteral("/proc/net/dev"), &ok));
     if (!ok) {
         errors->push_back({
             QStringLiteral("network"),
@@ -480,9 +437,8 @@ QVector<RawNetworkInterfaceInfo> LinuxCollector::collectNetwork(
         return {};
     }
 
-    *defaultInterface = parseDefaultRouteInterface(
-        readAll(QStringLiteral("/proc/net/route")),
-        readAll(QStringLiteral("/proc/net/ipv6_route")));
+    *defaultInterface = parseDefaultRouteInterface(readAll(QStringLiteral("/proc/net/route")),
+                                                   readAll(QStringLiteral("/proc/net/ipv6_route")));
 
     QVector<RawNetworkInterfaceInfo> result;
     const QStringList names = counters.keys();
@@ -491,41 +447,32 @@ QVector<RawNetworkInterfaceInfo> LinuxCollector::collectNetwork(
         interface.info.available = true;
         interface.info.name = name;
         bool ifIndexOk = false;
-        interface.info.ifIndex =
-            readText(QStringLiteral("/sys/class/net/%1/ifindex").arg(name))
-                .toInt(&ifIndexOk);
+        interface.info.ifIndex
+            = readText(QStringLiteral("/sys/class/net/%1/ifindex").arg(name)).toInt(&ifIndexOk);
         if (!ifIndexOk || interface.info.ifIndex <= 0)
             interface.info.ifIndex = 0;
         interface.info.loopback = name == QStringLiteral("lo");
-        interface.info.wireless =
-            QFileInfo::exists(
-                QStringLiteral("/sys/class/net/%1/wireless").arg(name));
-        const QString state =
-            readText(QStringLiteral("/sys/class/net/%1/operstate").arg(name));
-        interface.info.up = state == QStringLiteral("up")
-            || state == QStringLiteral("unknown");
+        interface.info.wireless
+            = QFileInfo::exists(QStringLiteral("/sys/class/net/%1/wireless").arg(name));
+        const QString state = readText(QStringLiteral("/sys/class/net/%1/operstate").arg(name));
+        interface.info.up = state == QStringLiteral("up") || state == QStringLiteral("unknown");
         interface.counters = counters.value(name);
         interface.info.downloadTotalBytes = interface.counters.receiveBytes;
         interface.info.uploadTotalBytes = interface.counters.transmitBytes;
         result.push_back(interface);
     }
-    const auto activeDefault = std::find_if(
-        result.cbegin(),
-        result.cend(),
-        [defaultInterface](const RawNetworkInterfaceInfo &interface) {
-            return interface.info.name == *defaultInterface
-                && interface.info.up;
-        });
+    const auto activeDefault
+        = std::find_if(result.cbegin(),
+                       result.cend(),
+                       [defaultInterface](const RawNetworkInterfaceInfo &interface) {
+                           return interface.info.name == *defaultInterface && interface.info.up;
+                       });
     if (activeDefault == result.cend()) {
         const auto fallback = std::find_if(
-            result.cbegin(),
-            result.cend(),
-            [](const RawNetworkInterfaceInfo &interface) {
+            result.cbegin(), result.cend(), [](const RawNetworkInterfaceInfo &interface) {
                 return interface.info.up && !interface.info.loopback;
             });
-        *defaultInterface = fallback == result.cend()
-            ? QString()
-            : fallback->info.name;
+        *defaultInterface = fallback == result.cend() ? QString() : fallback->info.name;
     }
     std::sort(result.begin(),
               result.end(),
@@ -562,8 +509,7 @@ BatteryInfo LinuxCollector::collectBattery(QVector<Error> *errors) const
     QString fallbackBatteryPath;
     QString batteryName;
     QString fallbackBatteryName;
-    for (const QString &entry :
-         supplies.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
+    for (const QString &entry : supplies.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
         const QString path = supplies.absoluteFilePath(entry);
         const QString type = readText(path + QStringLiteral("/type"));
         if (type.compare(QStringLiteral("Battery"), Qt::CaseInsensitive) == 0) {
@@ -571,15 +517,13 @@ BatteryInfo LinuxCollector::collectBattery(QVector<Error> *errors) const
                 fallbackBatteryPath = path;
                 fallbackBatteryName = entry;
             }
-            const OptionalInteger present =
-                readInteger(path + QStringLiteral("/present"));
+            const OptionalInteger present = readInteger(path + QStringLiteral("/present"));
             if (batteryPath.isEmpty() && (!present || *present > 0)) {
                 batteryPath = path;
                 batteryName = entry;
             }
         } else if (isAcType(type)) {
-            const OptionalInteger online =
-                readInteger(path + QStringLiteral("/online"));
+            const OptionalInteger online = readInteger(path + QStringLiteral("/online"));
             if (online)
                 acOnline = acOnline.value_or(false) || *online > 0;
         }
@@ -596,58 +540,46 @@ BatteryInfo LinuxCollector::collectBattery(QVector<Error> *errors) const
     }
     result.name = batteryName;
 
-    const OptionalInteger present =
-        readInteger(batteryPath + QStringLiteral("/present"));
+    const OptionalInteger present = readInteger(batteryPath + QStringLiteral("/present"));
     result.present = !present || *present > 0;
     result.available = result.present;
     if (!result.present)
         return result;
 
-    result.chargePercent =
-        readNumber(batteryPath + QStringLiteral("/capacity"));
+    result.chargePercent = readNumber(batteryPath + QStringLiteral("/capacity"));
     result.status = readText(batteryPath + QStringLiteral("/status")).toLower();
 
-    OptionalInteger energyNow =
-        readInteger(batteryPath + QStringLiteral("/energy_now"));
-    OptionalInteger energyFull =
-        readInteger(batteryPath + QStringLiteral("/energy_full"));
-    OptionalInteger energyDesign =
-        readInteger(batteryPath + QStringLiteral("/energy_full_design"));
-    OptionalInteger powerNow =
-        readInteger(batteryPath + QStringLiteral("/power_now"));
+    OptionalInteger energyNow = readInteger(batteryPath + QStringLiteral("/energy_now"));
+    OptionalInteger energyFull = readInteger(batteryPath + QStringLiteral("/energy_full"));
+    OptionalInteger energyDesign = readInteger(batteryPath + QStringLiteral("/energy_full_design"));
+    OptionalInteger powerNow = readInteger(batteryPath + QStringLiteral("/power_now"));
 
     if (!energyNow || !energyFull) {
-        const OptionalInteger chargeNow =
-            readInteger(batteryPath + QStringLiteral("/charge_now"));
-        const OptionalInteger chargeFull =
-            readInteger(batteryPath + QStringLiteral("/charge_full"));
-        const OptionalInteger chargeDesign =
-            readInteger(batteryPath + QStringLiteral("/charge_full_design"));
-        const OptionalInteger voltage =
-            readInteger(batteryPath + QStringLiteral("/voltage_now"));
+        const OptionalInteger chargeNow = readInteger(batteryPath + QStringLiteral("/charge_now"));
+        const OptionalInteger chargeFull
+            = readInteger(batteryPath + QStringLiteral("/charge_full"));
+        const OptionalInteger chargeDesign
+            = readInteger(batteryPath + QStringLiteral("/charge_full_design"));
+        const OptionalInteger voltage = readInteger(batteryPath + QStringLiteral("/voltage_now"));
         if (voltage && chargeNow)
-            energyNow = static_cast<qint64>(
-                static_cast<long double>(*voltage)
-                * static_cast<long double>(*chargeNow) / 1'000'000.0L);
+            energyNow = static_cast<qint64>(static_cast<long double>(*voltage)
+                                            * static_cast<long double>(*chargeNow) / 1'000'000.0L);
         if (voltage && chargeFull)
-            energyFull = static_cast<qint64>(
-                static_cast<long double>(*voltage)
-                * static_cast<long double>(*chargeFull) / 1'000'000.0L);
+            energyFull
+                = static_cast<qint64>(static_cast<long double>(*voltage)
+                                      * static_cast<long double>(*chargeFull) / 1'000'000.0L);
         if (voltage && chargeDesign)
-            energyDesign = static_cast<qint64>(
-                static_cast<long double>(*voltage)
-                * static_cast<long double>(*chargeDesign) / 1'000'000.0L);
+            energyDesign
+                = static_cast<qint64>(static_cast<long double>(*voltage)
+                                      * static_cast<long double>(*chargeDesign) / 1'000'000.0L);
     }
 
     if (!powerNow) {
-        const OptionalInteger current =
-            readInteger(batteryPath + QStringLiteral("/current_now"));
-        const OptionalInteger voltage =
-            readInteger(batteryPath + QStringLiteral("/voltage_now"));
+        const OptionalInteger current = readInteger(batteryPath + QStringLiteral("/current_now"));
+        const OptionalInteger voltage = readInteger(batteryPath + QStringLiteral("/voltage_now"));
         if (current && voltage) {
-            powerNow = static_cast<qint64>(
-                static_cast<long double>(*current)
-                * static_cast<long double>(*voltage) / 1'000'000.0L);
+            powerNow = static_cast<qint64>(static_cast<long double>(*current)
+                                           * static_cast<long double>(*voltage) / 1'000'000.0L);
         }
     }
 
@@ -657,22 +589,21 @@ BatteryInfo LinuxCollector::collectBattery(QVector<Error> *errors) const
     if (powerNow && *powerNow >= 0)
         result.powerWatts = static_cast<double>(*powerNow) / 1'000'000.0;
     if (energyFull && energyDesign && *energyDesign > 0) {
-        result.healthPercent =
-            static_cast<double>(*energyFull) * 100.0
-            / static_cast<double>(*energyDesign);
+        result.healthPercent
+            = static_cast<double>(*energyFull) * 100.0 / static_cast<double>(*energyDesign);
     }
     if (powerNow && *powerNow > 0) {
         qint64 relevantEnergy = 0;
-        if (result.status == QStringLiteral("charging")
-            && energyNow && energyFull && *energyFull >= *energyNow) {
+        if (result.status == QStringLiteral("charging") && energyNow && energyFull
+            && *energyFull >= *energyNow) {
             relevantEnergy = *energyFull - *energyNow;
         } else if (energyNow) {
             relevantEnergy = *energyNow;
         }
         if (relevantEnergy > 0) {
-            result.timeRemainingSeconds = static_cast<qint64>(
-                static_cast<long double>(relevantEnergy) * 3600.0L
-                / static_cast<long double>(*powerNow));
+            result.timeRemainingSeconds
+                = static_cast<qint64>(static_cast<long double>(relevantEnergy) * 3600.0L
+                                      / static_cast<long double>(*powerNow));
         }
     }
     return result;

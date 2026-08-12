@@ -37,8 +37,7 @@ CommandResult TopCommand::run(const QStringList &arguments) const
 
     for (int index = 0; index < arguments.size(); ++index) {
         const QString &argument = arguments.at(index);
-        if (argument == QStringLiteral("--help")
-            || argument == QStringLiteral("-h")) {
+        if (argument == QStringLiteral("--help") || argument == QStringLiteral("-h")) {
             if (arguments.size() != 1)
                 return usageError(QStringLiteral("--help cannot be combined with other options"));
             return {SuccessExit, false, {}, helpText(), false};
@@ -47,8 +46,7 @@ CommandResult TopCommand::run(const QStringList &arguments) const
             options.forceAscii = true;
             continue;
         }
-        if (argument == QStringLiteral("--interval")
-            && index + 1 < arguments.size()) {
+        if (argument == QStringLiteral("--interval") && index + 1 < arguments.size()) {
             bool ok = false;
             const int interval = arguments.at(++index).toInt(&ok);
             if (!ok || interval < 250 || interval > 60000) {
@@ -58,13 +56,11 @@ CommandResult TopCommand::run(const QStringList &arguments) const
             requestedInterval = interval;
             continue;
         }
-        return usageError(
-            QStringLiteral("Unknown or incomplete top option: %1").arg(argument));
+        return usageError(QStringLiteral("Unknown or incomplete top option: %1").arg(argument));
     }
 
     QString initializationError;
-    if (!keytopInitializeConfig(&initializationError)
-        && !initializationError.isEmpty()) {
+    if (!keytopInitializeConfig(&initializationError) && !initializationError.isEmpty()) {
         qWarning("keytop: %s", qPrintable(initializationError));
     }
     const KeytopConfig config = loadKeytopConfig();
@@ -76,9 +72,8 @@ CommandResult TopCommand::run(const QStringList &arguments) const
             UsageExit,
             false,
             {},
-            QStringLiteral(
-                "keytop requires an interactive terminal on stdin and stdout.\n"
-                "Run it directly in a terminal; use 'keytop value stream' for pipes."),
+            QStringLiteral("keytop requires an interactive terminal on stdin and stdout.\n"
+                           "Run it directly in a terminal; use 'keytop value stream' for pipes."),
             true,
         };
     }
@@ -89,8 +84,7 @@ CommandResult TopCommand::run(const QStringList &arguments) const
             UsageExit,
             false,
             {},
-            QStringLiteral(
-                "keytop requires a usable TERM definition (TERM is unset or 'dumb')."),
+            QStringLiteral("keytop requires a usable TERM definition (TERM is unset or 'dumb')."),
             true,
         };
     }
@@ -115,8 +109,7 @@ CommandResult TopCommand::run(const QStringList &arguments) const
             FailureExit,
             false,
             {},
-            QStringLiteral("keytop failed: %1")
-                .arg(QString::fromLocal8Bit(error.what())),
+            QStringLiteral("keytop failed: %1").arg(QString::fromLocal8Bit(error.what())),
             true,
         };
     } catch (...) {

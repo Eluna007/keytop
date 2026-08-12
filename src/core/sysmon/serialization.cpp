@@ -13,16 +13,12 @@ namespace {
 
 QJsonValue numberOrNull(const OptionalNumber &value)
 {
-    return value && std::isfinite(*value)
-        ? QJsonValue(*value)
-        : QJsonValue(QJsonValue::Null);
+    return value && std::isfinite(*value) ? QJsonValue(*value) : QJsonValue(QJsonValue::Null);
 }
 
 QJsonValue integerOrNull(const OptionalInteger &value)
 {
-    return value
-        ? QJsonValue(*value)
-        : QJsonValue(QJsonValue::Null);
+    return value ? QJsonValue(*value) : QJsonValue(QJsonValue::Null);
 }
 
 QJsonObject systemJson(const SystemInfo &system)
@@ -69,18 +65,12 @@ QJsonObject cpuJson(const CpuInfo &cpu)
         {QStringLiteral("iowaitPercent"), numberOrNull(cpu.iowaitPercent)},
         {QStringLiteral("coreIds"), coreIds},
         {QStringLiteral("coreUsagePercent"), cores},
-        {QStringLiteral("frequencyCurrentMHz"),
-         numberOrNull(cpu.frequencyCurrentMHz)},
-        {QStringLiteral("frequencyAverageMHz"),
-         numberOrNull(cpu.frequencyAverageMHz)},
-        {QStringLiteral("frequencyMinMHz"),
-         numberOrNull(cpu.frequencyMinMHz)},
-        {QStringLiteral("frequencyMaxMHz"),
-         numberOrNull(cpu.frequencyMaxMHz)},
-        {QStringLiteral("temperatureCelsius"),
-         numberOrNull(cpu.temperatureCelsius)},
-        {QStringLiteral("packageTemperatureCelsius"),
-         numberOrNull(cpu.packageTemperatureCelsius)},
+        {QStringLiteral("frequencyCurrentMHz"), numberOrNull(cpu.frequencyCurrentMHz)},
+        {QStringLiteral("frequencyAverageMHz"), numberOrNull(cpu.frequencyAverageMHz)},
+        {QStringLiteral("frequencyMinMHz"), numberOrNull(cpu.frequencyMinMHz)},
+        {QStringLiteral("frequencyMaxMHz"), numberOrNull(cpu.frequencyMaxMHz)},
+        {QStringLiteral("temperatureCelsius"), numberOrNull(cpu.temperatureCelsius)},
+        {QStringLiteral("packageTemperatureCelsius"), numberOrNull(cpu.packageTemperatureCelsius)},
         {QStringLiteral("powerWatts"), numberOrNull(cpu.powerWatts)},
         {QStringLiteral("fanRpm"), numberOrNull(cpu.fanRpm)},
     };
@@ -92,18 +82,13 @@ QJsonObject memoryJson(const MemoryInfo &memory)
         {QStringLiteral("available"), memory.available},
         {QStringLiteral("totalBytes"), static_cast<qint64>(memory.totalBytes)},
         {QStringLiteral("usedBytes"), static_cast<qint64>(memory.usedBytes)},
-        {QStringLiteral("availableBytes"),
-         static_cast<qint64>(memory.availableBytes)},
+        {QStringLiteral("availableBytes"), static_cast<qint64>(memory.availableBytes)},
         {QStringLiteral("freeBytes"), static_cast<qint64>(memory.freeBytes)},
         {QStringLiteral("cachedBytes"), static_cast<qint64>(memory.cachedBytes)},
-        {QStringLiteral("buffersBytes"),
-         static_cast<qint64>(memory.buffersBytes)},
-        {QStringLiteral("swapTotalBytes"),
-         static_cast<qint64>(memory.swapTotalBytes)},
-        {QStringLiteral("swapUsedBytes"),
-         static_cast<qint64>(memory.swapUsedBytes)},
-        {QStringLiteral("usagePercent"),
-         numberOrNull(memory.usagePercent)},
+        {QStringLiteral("buffersBytes"), static_cast<qint64>(memory.buffersBytes)},
+        {QStringLiteral("swapTotalBytes"), static_cast<qint64>(memory.swapTotalBytes)},
+        {QStringLiteral("swapUsedBytes"), static_cast<qint64>(memory.swapUsedBytes)},
+        {QStringLiteral("usagePercent"), numberOrNull(memory.usagePercent)},
     };
 }
 
@@ -117,17 +102,12 @@ QJsonObject gpuJson(const GpuInfo &gpu)
         {QStringLiteral("name"), gpu.name},
         {QStringLiteral("vendor"), gpu.vendor},
         {QStringLiteral("driver"), gpu.driver},
-        {QStringLiteral("utilizationPercent"),
-         numberOrNull(gpu.utilizationPercent)},
-        {QStringLiteral("temperatureCelsius"),
-         numberOrNull(gpu.temperatureCelsius)},
-        {QStringLiteral("vramTotalBytes"),
-         integerOrNull(gpu.vramTotalBytes)},
-        {QStringLiteral("vramUsedBytes"),
-         integerOrNull(gpu.vramUsedBytes)},
+        {QStringLiteral("utilizationPercent"), numberOrNull(gpu.utilizationPercent)},
+        {QStringLiteral("temperatureCelsius"), numberOrNull(gpu.temperatureCelsius)},
+        {QStringLiteral("vramTotalBytes"), integerOrNull(gpu.vramTotalBytes)},
+        {QStringLiteral("vramUsedBytes"), integerOrNull(gpu.vramUsedBytes)},
         {QStringLiteral("powerWatts"), numberOrNull(gpu.powerWatts)},
-        {QStringLiteral("frequencyMHz"),
-         numberOrNull(gpu.frequencyMHz)},
+        {QStringLiteral("frequencyMHz"), numberOrNull(gpu.frequencyMHz)},
     };
 }
 
@@ -141,12 +121,9 @@ QJsonObject diskJson(const DiskInfo &disk)
         {QStringLiteral("totalBytes"), static_cast<qint64>(disk.totalBytes)},
         {QStringLiteral("usedBytes"), static_cast<qint64>(disk.usedBytes)},
         {QStringLiteral("freeBytes"), static_cast<qint64>(disk.freeBytes)},
-        {QStringLiteral("usagePercent"),
-         numberOrNull(disk.usagePercent)},
-        {QStringLiteral("readBytesPerSecond"),
-         numberOrNull(disk.readBytesPerSecond)},
-        {QStringLiteral("writeBytesPerSecond"),
-         numberOrNull(disk.writeBytesPerSecond)},
+        {QStringLiteral("usagePercent"), numberOrNull(disk.usagePercent)},
+        {QStringLiteral("readBytesPerSecond"), numberOrNull(disk.readBytesPerSecond)},
+        {QStringLiteral("writeBytesPerSecond"), numberOrNull(disk.writeBytesPerSecond)},
         {QStringLiteral("readIops"), numberOrNull(disk.readIops)},
         {QStringLiteral("writeIops"), numberOrNull(disk.writeIops)},
     };
@@ -161,16 +138,11 @@ QJsonObject networkInterfaceJson(const NetworkInterfaceInfo &interface)
         {QStringLiteral("up"), interface.up},
         {QStringLiteral("loopback"), interface.loopback},
         {QStringLiteral("wireless"), interface.wireless},
-        {QStringLiteral("wirelessSignalPercent"),
-         QJsonValue(QJsonValue::Null)},
-        {QStringLiteral("downloadTotalBytes"),
-         static_cast<qint64>(interface.downloadTotalBytes)},
-        {QStringLiteral("uploadTotalBytes"),
-         static_cast<qint64>(interface.uploadTotalBytes)},
-        {QStringLiteral("downloadBytesPerSecond"),
-         numberOrNull(interface.downloadBytesPerSecond)},
-        {QStringLiteral("uploadBytesPerSecond"),
-         numberOrNull(interface.uploadBytesPerSecond)},
+        {QStringLiteral("wirelessSignalPercent"), QJsonValue(QJsonValue::Null)},
+        {QStringLiteral("downloadTotalBytes"), static_cast<qint64>(interface.downloadTotalBytes)},
+        {QStringLiteral("uploadTotalBytes"), static_cast<qint64>(interface.uploadTotalBytes)},
+        {QStringLiteral("downloadBytesPerSecond"), numberOrNull(interface.downloadBytesPerSecond)},
+        {QStringLiteral("uploadBytesPerSecond"), numberOrNull(interface.uploadBytesPerSecond)},
     };
 }
 
@@ -184,45 +156,33 @@ QJsonObject networkJson(const NetworkInfo &network)
         {QStringLiteral("defaultInterface"), network.defaultInterface},
         {QStringLiteral("wifiAvailable"), network.wifiAvailable},
         {QStringLiteral("wifiConnected"), network.wifiConnected},
-        {QStringLiteral("wifiSignalPercent"),
-         QJsonValue(QJsonValue::Null)},
-        {QStringLiteral("downloadTotalBytes"),
-         static_cast<qint64>(network.downloadTotalBytes)},
-        {QStringLiteral("uploadTotalBytes"),
-         static_cast<qint64>(network.uploadTotalBytes)},
-        {QStringLiteral("downloadBytesPerSecond"),
-         numberOrNull(network.downloadBytesPerSecond)},
-        {QStringLiteral("uploadBytesPerSecond"),
-         numberOrNull(network.uploadBytesPerSecond)},
+        {QStringLiteral("wifiSignalPercent"), QJsonValue(QJsonValue::Null)},
+        {QStringLiteral("downloadTotalBytes"), static_cast<qint64>(network.downloadTotalBytes)},
+        {QStringLiteral("uploadTotalBytes"), static_cast<qint64>(network.uploadTotalBytes)},
+        {QStringLiteral("downloadBytesPerSecond"), numberOrNull(network.downloadBytesPerSecond)},
+        {QStringLiteral("uploadBytesPerSecond"), numberOrNull(network.uploadBytesPerSecond)},
         {QStringLiteral("interfaces"), interfaces},
     };
 }
 
 QJsonObject batteryJson(const BatteryInfo &battery)
 {
-    const QJsonValue acOnline = battery.acOnline
-        ? QJsonValue(*battery.acOnline)
-        : QJsonValue(QJsonValue::Null);
+    const QJsonValue acOnline
+        = battery.acOnline ? QJsonValue(*battery.acOnline) : QJsonValue(QJsonValue::Null);
     return {
         {QStringLiteral("available"), battery.available},
         {QStringLiteral("supported"), battery.supported},
         {QStringLiteral("present"), battery.present},
         {QStringLiteral("name"), battery.name},
         {QStringLiteral("status"), battery.status},
-        {QStringLiteral("chargePercent"),
-         numberOrNull(battery.chargePercent)},
+        {QStringLiteral("chargePercent"), numberOrNull(battery.chargePercent)},
         {QStringLiteral("powerWatts"), numberOrNull(battery.powerWatts)},
-        {QStringLiteral("timeRemainingSeconds"),
-         integerOrNull(battery.timeRemainingSeconds)},
+        {QStringLiteral("timeRemainingSeconds"), integerOrNull(battery.timeRemainingSeconds)},
         {QStringLiteral("acOnline"), acOnline},
-        {QStringLiteral("healthPercent"),
-         numberOrNull(battery.healthPercent)},
-        {QStringLiteral("energyNowMicroWh"),
-         integerOrNull(battery.energyNowMicroWh)},
-        {QStringLiteral("energyFullMicroWh"),
-         integerOrNull(battery.energyFullMicroWh)},
-        {QStringLiteral("energyDesignMicroWh"),
-         integerOrNull(battery.energyDesignMicroWh)},
+        {QStringLiteral("healthPercent"), numberOrNull(battery.healthPercent)},
+        {QStringLiteral("energyNowMicroWh"), integerOrNull(battery.energyNowMicroWh)},
+        {QStringLiteral("energyFullMicroWh"), integerOrNull(battery.energyFullMicroWh)},
+        {QStringLiteral("energyDesignMicroWh"), integerOrNull(battery.energyDesignMicroWh)},
     };
 }
 
@@ -235,12 +195,9 @@ QJsonObject processJson(const ProcessInfo &process)
         {QStringLiteral("command"), process.command},
         {QStringLiteral("user"), process.user},
         {QStringLiteral("state"), process.state},
-        {QStringLiteral("cpuUsagePercent"),
-         numberOrNull(process.cpuUsagePercent)},
-        {QStringLiteral("memoryBytes"),
-         static_cast<qint64>(process.memoryBytes)},
-        {QStringLiteral("memoryPercent"),
-         numberOrNull(process.memoryPercent)},
+        {QStringLiteral("cpuUsagePercent"), numberOrNull(process.cpuUsagePercent)},
+        {QStringLiteral("memoryBytes"), static_cast<qint64>(process.memoryBytes)},
+        {QStringLiteral("memoryPercent"), numberOrNull(process.memoryPercent)},
         {QStringLiteral("threadCount"), process.threadCount},
         {QStringLiteral("startTimeMs"), process.startTimeMs},
         {QStringLiteral("runtimeSeconds"), process.runtimeSeconds},
@@ -251,9 +208,8 @@ QJsonObject processJson(const ProcessInfo &process)
 
 QString humanPercent(const OptionalNumber &value)
 {
-    return value
-        ? QLocale::c().toString(*value, 'f', 1) + QLatin1Char('%')
-        : QStringLiteral("unavailable");
+    return value ? QLocale::c().toString(*value, 'f', 1) + QLatin1Char('%')
+                 : QStringLiteral("unavailable");
 }
 
 QString humanBytes(quint64 bytes)
@@ -271,9 +227,8 @@ QString humanBytes(quint64 bytes)
         value /= 1024.0;
         ++unit;
     }
-    return QStringLiteral("%1 %2")
-        .arg(QLocale::c().toString(value, 'f', unit == 0 ? 0 : 1),
-             units.at(unit));
+    return QStringLiteral("%1 %2").arg(QLocale::c().toString(value, 'f', unit == 0 ? 0 : 1),
+                                       units.at(unit));
 }
 
 } // namespace
@@ -330,8 +285,7 @@ QJsonObject snapshotToJson(const Snapshot &snapshot)
 
 QByteArray snapshotToJsonLine(const Snapshot &snapshot)
 {
-    QByteArray result =
-        QJsonDocument(snapshotToJson(snapshot)).toJson(QJsonDocument::Compact);
+    QByteArray result = QJsonDocument(snapshotToJson(snapshot)).toJson(QJsonDocument::Compact);
     result.push_back('\n');
     return result;
 }
@@ -341,21 +295,20 @@ QString humanSnapshot(const Snapshot &snapshot)
     QString output;
     QTextStream stream(&output);
     if (snapshot.requestedModules.contains(QStringLiteral("system"))) {
-        stream << "System  " << snapshot.system.hostName << " · "
-               << snapshot.system.osName << " · " << snapshot.system.kernel
-               << '\n';
+        stream << "System  " << snapshot.system.hostName << " · " << snapshot.system.osName << " · "
+               << snapshot.system.kernel << '\n';
     }
     if (snapshot.requestedModules.contains(QStringLiteral("cpu"))) {
         stream << "CPU     " << humanPercent(snapshot.cpu.usagePercent);
         if (snapshot.cpu.temperatureCelsius)
-            stream << " · " << QLocale::c().toString(
-                *snapshot.cpu.temperatureCelsius, 'f', 1) << " °C";
+            stream << " · " << QLocale::c().toString(*snapshot.cpu.temperatureCelsius, 'f', 1)
+                   << " °C";
         stream << '\n';
     }
     if (snapshot.requestedModules.contains(QStringLiteral("memory"))) {
-        stream << "Memory  " << humanPercent(snapshot.memory.usagePercent)
-               << " · " << humanBytes(snapshot.memory.usedBytes)
-               << " / " << humanBytes(snapshot.memory.totalBytes) << '\n';
+        stream << "Memory  " << humanPercent(snapshot.memory.usagePercent) << " · "
+               << humanBytes(snapshot.memory.usedBytes) << " / "
+               << humanBytes(snapshot.memory.totalBytes) << '\n';
     }
     if (snapshot.requestedModules.contains(QStringLiteral("gpu")))
         stream << "GPU     " << snapshot.gpus.size() << " detected\n";
@@ -370,9 +323,8 @@ QString humanSnapshot(const Snapshot &snapshot)
     }
     if (snapshot.requestedModules.contains(QStringLiteral("battery"))) {
         stream << "Battery "
-               << (snapshot.battery.present
-                       ? humanPercent(snapshot.battery.chargePercent)
-                       : QStringLiteral("not present"))
+               << (snapshot.battery.present ? humanPercent(snapshot.battery.chargePercent)
+                                            : QStringLiteral("not present"))
                << '\n';
     }
     if (snapshot.requestedModules.contains(QStringLiteral("processes")))

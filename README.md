@@ -76,7 +76,7 @@ Requirements:
 
 - CMake
 - C++17 compiler
-- Qt 6 Core and Network
+- Qt 6 Core
 - pkg-config
 - ncursesw
 
@@ -88,6 +88,18 @@ cmake -S . -B build \
 cmake --build build
 ctest --test-dir build --output-on-failure
 ```
+
+Developer quality checks:
+
+```bash
+make format
+make format-check
+make test
+make check
+```
+
+`make check` runs the C++ format check, compiler build, CTest, ShellCheck and
+`git diff --check`. It does not install system files or change user configuration.
 
 Install system-wide:
 

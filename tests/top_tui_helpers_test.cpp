@@ -32,25 +32,21 @@ void TopTuiHelpersTest::borderlessMeterKeepsExactWidth()
 
 void TopTuiHelpersTest::coreGridPaginatesWithoutDroppingCores()
 {
-    const CoreGridLayout small =
-        calculateCoreGridLayout(72, 10, 20, 19, 0);
+    const CoreGridLayout small = calculateCoreGridLayout(72, 10, 20, 19, 0);
     QCOMPARE(small.pageCount, 1);
     QCOMPARE(small.visibleCount, 20);
 
-    const CoreGridLayout first =
-        calculateCoreGridLayout(72, 10, 96, 95, 0);
+    const CoreGridLayout first = calculateCoreGridLayout(72, 10, 96, 95, 0);
     QVERIFY(first.capacity > 0);
     QVERIFY(first.capacity < 96);
     QVERIFY(first.pageCount > 1);
     QCOMPARE(first.firstIndex, 0);
 
-    const CoreGridLayout last =
-        calculateCoreGridLayout(72, 10, 96, 95, first.pageCount - 1);
+    const CoreGridLayout last = calculateCoreGridLayout(72, 10, 96, 95, first.pageCount - 1);
     QCOMPARE(last.firstIndex + last.visibleCount, 96);
     QVERIFY(last.meterWidth >= 5);
 
-    const CoreGridLayout many =
-        calculateCoreGridLayout(72, 10, 192, 191, 99);
+    const CoreGridLayout many = calculateCoreGridLayout(72, 10, 192, 191, 99);
     QCOMPARE(many.firstIndex + many.visibleCount, 192);
     QCOMPARE(many.page, many.pageCount - 1);
 }

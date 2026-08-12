@@ -8,7 +8,10 @@ CMAKE_ARGS ?=
 KEYTOP_BINARY := $(DESTDIR)$(PREFIX)/bin/keytop
 
 .DEFAULT_GOAL := all
-.PHONY: all build configure test install setcap uninstall clean help
+CPP_FILES := $(shell find src tests -type f \( -name '*.cpp' -o -name '*.h' -o -name '*.hpp' \) -print)
+SHELL_FILES := $(shell find tests -type f -name '*.sh' -print)
+
+.PHONY: all build configure test format format-check shellcheck diff-check check install setcap uninstall clean help
 
 all: build
 
@@ -30,6 +33,38 @@ test:
 		$(CMAKE_ARGS)
 	$(CMAKE) --build "$(BUILD_DIR)" --parallel
 	ctest --test-dir "$(BUILD_DIR)" --output-on-failure
+
+format:
+	@command -v clang-format >/dev/null 2>&1 || { \
+		printf 'keytop: clang-format is required for format\n' >&2; \
+		exit 127; \
+	}
+	@if test -n "$(CPP_FILES)"; then \
+		clang-format -i $(CPP_FILES); \
+	fi
+
+format-check:
+	@command -v clang-format >/dev/null 2>&1 || { \
+		printf 'keytop: clang-format is required for format-check\n' >&2; \
+		exit 127; \
+	}
+	@if test -n "$(CPP_FILES)"; then \
+		clang-format --dry-run --Werror $(CPP_FILES); \
+	fi
+
+shellcheck:
+	@if test -n "$(SHELL_FILES)"; then \
+		command -v shellcheck >/dev/null 2>&1 || { \
+			printf 'keytop: shellcheck is required for shellcheck\n' >&2; \
+			exit 127; \
+		}; \
+		shellcheck $(SHELL_FILES); \
+	fi
+
+diff-check:
+	git diff --check
+
+check: format-check test shellcheck diff-check
 
 install: build
 	DESTDIR="$(DESTDIR)" $(CMAKE) --install "$(BUILD_DIR)"
@@ -80,4 +115,7 @@ help:
 	@printf '  uninstall  Remove known keytop files; keep user configuration\n'
 	@printf '  clean      Remove generated build objects\n'
 	@printf '  test       Build and run tests\n'
+	@printf '  format     Format first-party C++\n'
+	@printf '  format-check  Check first-party C++ formatting\n'
+	@printf '  check      Run format, build, tests, shellcheck and diff checks\n'
 	@printf '  help       Show this help\n'

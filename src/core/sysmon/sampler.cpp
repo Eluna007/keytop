@@ -12,11 +12,11 @@ namespace {
 
 qint64 monotonicNsecs()
 {
-    struct timespec value {};
+    struct timespec value{};
     return ::clock_gettime(CLOCK_MONOTONIC, &value) == 0
-        ? static_cast<qint64>(value.tv_sec) * 1'000'000'000
-            + static_cast<qint64>(value.tv_nsec)
-        : 0;
+               ? static_cast<qint64>(value.tv_sec) * 1'000'000'000
+                     + static_cast<qint64>(value.tv_nsec)
+               : 0;
 }
 
 double elapsedSeconds(qint64 beforeNs, qint64 currentNs)
@@ -54,8 +54,7 @@ Snapshot Sampler::sample(const ModuleSet &modules)
 
     const qint64 sampleStartedNs = monotonicNsecs();
     if (m_lastSampleNs > 0 && sampleStartedNs > m_lastSampleNs) {
-        snapshot.intervalMs =
-            (sampleStartedNs - m_lastSampleNs) / 1'000'000;
+        snapshot.intervalMs = (sampleStartedNs - m_lastSampleNs) / 1'000'000;
     }
     m_lastSampleNs = sampleStartedNs;
 
@@ -67,32 +66,27 @@ Snapshot Sampler::sample(const ModuleSet &modules)
         snapshot.system = std::move(raw.system);
 
     if (modules.contains(QStringLiteral("cpu"))) {
-        const qint64 cpuTimestampNs = raw.cpuTimestampNs > 0
-            ? raw.cpuTimestampNs
-            : sampleFinishedNs;
+        const qint64 cpuTimestampNs
+            = raw.cpuTimestampNs > 0 ? raw.cpuTimestampNs : sampleFinishedNs;
         snapshot.cpu = calculateCpuInfo(m_previousCpu, raw.cpu.counters);
         snapshot.cpu.frequencyCurrentMHz = raw.cpu.frequencyCurrentMHz;
         snapshot.cpu.frequencyAverageMHz = raw.cpu.frequencyAverageMHz;
         snapshot.cpu.frequencyMinMHz = raw.cpu.frequencyMinMHz;
         snapshot.cpu.frequencyMaxMHz = raw.cpu.frequencyMaxMHz;
         snapshot.cpu.temperatureCelsius = raw.cpu.temperatureCelsius;
-        snapshot.cpu.packageTemperatureCelsius =
-            raw.cpu.packageTemperatureCelsius;
-        const double seconds =
-            elapsedSeconds(m_previousCpuNs, cpuTimestampNs);
-        snapshot.cpu.powerWatts = energyPower(
-            m_previousEnergyMicroJoules,
-            raw.cpu.packageEnergyMicroJoules,
-            raw.cpu.packageEnergyRangeMicroJoules
-                ? raw.cpu.packageEnergyRangeMicroJoules
-                : m_previousEnergyRangeMicroJoules,
-            seconds);
+        snapshot.cpu.packageTemperatureCelsius = raw.cpu.packageTemperatureCelsius;
+        const double seconds = elapsedSeconds(m_previousCpuNs, cpuTimestampNs);
+        snapshot.cpu.powerWatts = energyPower(m_previousEnergyMicroJoules,
+                                              raw.cpu.packageEnergyMicroJoules,
+                                              raw.cpu.packageEnergyRangeMicroJoules
+                                                  ? raw.cpu.packageEnergyRangeMicroJoules
+                                                  : m_previousEnergyRangeMicroJoules,
+                                              seconds);
         snapshot.cpu.fanRpm = raw.cpu.fanRpm;
         m_previousCpu = raw.cpu.counters;
         m_previousCpuNs = cpuTimestampNs;
         m_previousEnergyMicroJoules = raw.cpu.packageEnergyMicroJoules;
-        m_previousEnergyRangeMicroJoules =
-            raw.cpu.packageEnergyRangeMicroJoules;
+        m_previousEnergyRangeMicroJoules = raw.cpu.packageEnergyRangeMicroJoules;
     }
 
     if (modules.contains(QStringLiteral("memory")))
@@ -102,11 +96,9 @@ Snapshot Sampler::sample(const ModuleSet &modules)
         snapshot.gpus = std::move(raw.gpus);
 
     if (modules.contains(QStringLiteral("disk"))) {
-        const qint64 diskTimestampNs = raw.diskTimestampNs > 0
-            ? raw.diskTimestampNs
-            : sampleFinishedNs;
-        const double seconds =
-            elapsedSeconds(m_previousDiskNs, diskTimestampNs);
+        const qint64 diskTimestampNs
+            = raw.diskTimestampNs > 0 ? raw.diskTimestampNs : sampleFinishedNs;
+        const double seconds = elapsedSeconds(m_previousDiskNs, diskTimestampNs);
         QHash<QString, DiskCounter> next;
         snapshot.disks.reserve(raw.disks.size());
         for (RawDiskInfo &rawDisk : raw.disks) {
@@ -115,25 +107,17 @@ Snapshot Sampler::sample(const ModuleSet &modules)
                 const auto previous = m_previousDisks.constFind(rawDisk.counterKey);
                 if (previous != m_previousDisks.cend() && seconds > 0.0) {
                     rawDisk.info.readBytesPerSecond = counterRate(
-                        previous->sectorsRead,
-                        rawDisk.counters->sectorsRead,
-                        seconds);
+                        previous->sectorsRead, rawDisk.counters->sectorsRead, seconds);
                     rawDisk.info.writeBytesPerSecond = counterRate(
-                        previous->sectorsWritten,
-                        rawDisk.counters->sectorsWritten,
-                        seconds);
+                        previous->sectorsWritten, rawDisk.counters->sectorsWritten, seconds);
                     if (rawDisk.info.readBytesPerSecond)
                         *rawDisk.info.readBytesPerSecond *= 512.0;
                     if (rawDisk.info.writeBytesPerSecond)
                         *rawDisk.info.writeBytesPerSecond *= 512.0;
                     rawDisk.info.readIops = counterRate(
-                        previous->readsCompleted,
-                        rawDisk.counters->readsCompleted,
-                        seconds);
+                        previous->readsCompleted, rawDisk.counters->readsCompleted, seconds);
                     rawDisk.info.writeIops = counterRate(
-                        previous->writesCompleted,
-                        rawDisk.counters->writesCompleted,
-                        seconds);
+                        previous->writesCompleted, rawDisk.counters->writesCompleted, seconds);
                 }
             }
             snapshot.disks.push_back(std::move(rawDisk.info));
@@ -143,13 +127,11 @@ Snapshot Sampler::sample(const ModuleSet &modules)
     }
 
     if (modules.contains(QStringLiteral("network"))) {
-        const qint64 networkTimestampNs = raw.networkTimestampNs > 0
-            ? raw.networkTimestampNs
-            : sampleFinishedNs;
+        const qint64 networkTimestampNs
+            = raw.networkTimestampNs > 0 ? raw.networkTimestampNs : sampleFinishedNs;
         snapshot.network.available = !raw.networkInterfaces.isEmpty();
         snapshot.network.defaultInterface = raw.defaultNetworkInterface;
-        const double seconds =
-            elapsedSeconds(m_previousNetworkNs, networkTimestampNs);
+        const double seconds = elapsedSeconds(m_previousNetworkNs, networkTimestampNs);
         QHash<QString, NetworkCounter> next;
         double aggregateDownload = 0.0;
         double aggregateUpload = 0.0;
@@ -158,30 +140,21 @@ Snapshot Sampler::sample(const ModuleSet &modules)
         snapshot.network.interfaces.reserve(raw.networkInterfaces.size());
 
         for (RawNetworkInterfaceInfo &rawInterface : raw.networkInterfaces) {
-            const QString cursorKey =
-                rawInterface.info.name + QLatin1Char('#')
-                + QString::number(rawInterface.info.ifIndex);
+            const QString cursorKey = rawInterface.info.name + QLatin1Char('#')
+                                      + QString::number(rawInterface.info.ifIndex);
             next.insert(cursorKey, rawInterface.counters);
-            const auto previous =
-                m_previousNetwork.constFind(cursorKey);
+            const auto previous = m_previousNetwork.constFind(cursorKey);
             if (previous != m_previousNetwork.cend() && seconds > 0.0) {
                 rawInterface.info.downloadBytesPerSecond = counterRate(
-                    previous->receiveBytes,
-                    rawInterface.counters.receiveBytes,
-                    seconds);
+                    previous->receiveBytes, rawInterface.counters.receiveBytes, seconds);
                 rawInterface.info.uploadBytesPerSecond = counterRate(
-                    previous->transmitBytes,
-                    rawInterface.counters.transmitBytes,
-                    seconds);
+                    previous->transmitBytes, rawInterface.counters.transmitBytes, seconds);
             }
             if (!rawInterface.info.loopback) {
-                snapshot.network.downloadTotalBytes +=
-                    rawInterface.info.downloadTotalBytes;
-                snapshot.network.uploadTotalBytes +=
-                    rawInterface.info.uploadTotalBytes;
+                snapshot.network.downloadTotalBytes += rawInterface.info.downloadTotalBytes;
+                snapshot.network.uploadTotalBytes += rawInterface.info.uploadTotalBytes;
                 if (rawInterface.info.downloadBytesPerSecond) {
-                    aggregateDownload +=
-                        *rawInterface.info.downloadBytesPerSecond;
+                    aggregateDownload += *rawInterface.info.downloadBytesPerSecond;
                     aggregateDownloadReady = true;
                 }
                 if (rawInterface.info.uploadBytesPerSecond) {
@@ -189,11 +162,9 @@ Snapshot Sampler::sample(const ModuleSet &modules)
                     aggregateUploadReady = true;
                 }
             }
-            snapshot.network.interfaces.push_back(
-                std::move(rawInterface.info));
+            snapshot.network.interfaces.push_back(std::move(rawInterface.info));
         }
-        for (const NetworkInterfaceInfo &interface :
-             snapshot.network.interfaces) {
+        for (const NetworkInterfaceInfo &interface : snapshot.network.interfaces) {
             if (!interface.wireless)
                 continue;
             snapshot.network.wifiAvailable = true;
@@ -212,11 +183,9 @@ Snapshot Sampler::sample(const ModuleSet &modules)
         snapshot.battery = std::move(raw.battery);
 
     if (modules.contains(QStringLiteral("processes"))) {
-        const qint64 processTimestampNs = raw.processTimestampNs > 0
-            ? raw.processTimestampNs
-            : sampleFinishedNs;
-        const double seconds =
-            elapsedSeconds(m_previousProcessNs, processTimestampNs);
+        const qint64 processTimestampNs
+            = raw.processTimestampNs > 0 ? raw.processTimestampNs : sampleFinishedNs;
+        const double seconds = elapsedSeconds(m_previousProcessNs, processTimestampNs);
         const long ticksPerSecond = ::sysconf(_SC_CLK_TCK);
         QHash<qint64, ProcessCursor> next;
         snapshot.processes.reserve(raw.processes.size());
@@ -226,30 +195,23 @@ Snapshot Sampler::sample(const ModuleSet &modules)
                 rawProcess.startTicks,
             };
             next.insert(rawProcess.info.pid, cursor);
-            const auto previous =
-                m_previousProcesses.constFind(rawProcess.info.pid);
+            const auto previous = m_previousProcesses.constFind(rawProcess.info.pid);
             if (previous != m_previousProcesses.cend()
                 && previous->startTicks == rawProcess.startTicks
-                && rawProcess.cpuTicks >= previous->ticks
-                && seconds > 0.0
-                && ticksPerSecond > 0) {
+                && rawProcess.cpuTicks >= previous->ticks && seconds > 0.0 && ticksPerSecond > 0) {
                 rawProcess.info.cpuUsagePercent = processCpuPercent(
-                    previous->ticks,
-                    rawProcess.cpuTicks,
-                    ticksPerSecond,
-                    seconds);
+                    previous->ticks, rawProcess.cpuTicks, ticksPerSecond, seconds);
             }
             snapshot.processes.push_back(std::move(rawProcess.info));
         }
         m_previousProcesses = std::move(next);
         m_previousProcessNs = processTimestampNs;
-        std::stable_sort(
-            snapshot.processes.begin(),
-            snapshot.processes.end(),
-            [](const ProcessInfo &left, const ProcessInfo &right) {
-                return left.cpuUsagePercent.value_or(-1.0)
-                    > right.cpuUsagePercent.value_or(-1.0);
-            });
+        std::stable_sort(snapshot.processes.begin(),
+                         snapshot.processes.end(),
+                         [](const ProcessInfo &left, const ProcessInfo &right) {
+                             return left.cpuUsagePercent.value_or(-1.0)
+                                    > right.cpuUsagePercent.value_or(-1.0);
+                         });
     }
 
     return snapshot;

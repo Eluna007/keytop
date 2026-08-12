@@ -77,16 +77,12 @@ QHash<QString, QString> readIni(const QString &path)
     return values;
 }
 
-QString value(const QHash<QString, QString> &values,
-              const QString &section,
-              const QString &key)
+QString value(const QHash<QString, QString> &values, const QString &section, const QString &key)
 {
     return values.value(section + QLatin1Char('.') + key);
 }
 
-void applyColor(const QHash<QString, QString> &values,
-                const QString &key,
-                QString *target)
+void applyColor(const QHash<QString, QString> &values, const QString &key, QString *target)
 {
     const QString candidate = value(values, QStringLiteral("colors"), key);
     if (candidate.isEmpty())
@@ -127,8 +123,7 @@ QStringList defaultDirectories()
     addCandidate(QStringLiteral(KEYTOP_BUILD_DEFAULTS_DIR));
     if (QCoreApplication::instance()) {
         const QDir applicationDir(QCoreApplication::applicationDirPath());
-        addCandidate(applicationDir.filePath(
-            QStringLiteral("../share/keytop/defaults")));
+        addCandidate(applicationDir.filePath(QStringLiteral("../share/keytop/defaults")));
         addCandidate(applicationDir.filePath(QStringLiteral("../../defaults")));
     }
     addCandidate(QStringLiteral(KEYTOP_DEFAULTS_INSTALL_DIR));
@@ -158,22 +153,20 @@ bool copyDefaultFile(const QString &name, QString *errorMessage)
     const QString source = defaultFilePath(name);
     if (source.isEmpty()) {
         if (errorMessage)
-            *errorMessage = QStringLiteral(
-                "default template %1 is not installed").arg(name);
+            *errorMessage = QStringLiteral("default template %1 is not installed").arg(name);
         return false;
     }
 
     QFile sourceFile(source);
     if (!sourceFile.copy(target)) {
         if (errorMessage)
-            *errorMessage = QStringLiteral("cannot create %1: %2")
-                .arg(target, sourceFile.errorString());
+            *errorMessage
+                = QStringLiteral("cannot create %1: %2").arg(target, sourceFile.errorString());
         return false;
     }
-    QFile::setPermissions(
-        target,
-        QFileDevice::ReadOwner | QFileDevice::WriteOwner
-            | QFileDevice::ReadGroup | QFileDevice::ReadOther);
+    QFile::setPermissions(target,
+                          QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ReadGroup
+                              | QFileDevice::ReadOther);
     return true;
 }
 
@@ -214,20 +207,17 @@ bool keytopInitializeConfig(QString *errorMessage)
     QDir configDirectory(directory);
     if (!configDirectory.exists() && !QDir().mkpath(directory)) {
         if (errorMessage)
-            *errorMessage = QStringLiteral("cannot create config directory: %1")
-                .arg(directory);
+            *errorMessage = QStringLiteral("cannot create config directory: %1").arg(directory);
         return false;
     }
     if (!configDirectory.exists() || !configDirectory.isReadable()) {
         if (errorMessage)
-            *errorMessage = QStringLiteral("config directory is not usable: %1")
-                .arg(directory);
+            *errorMessage = QStringLiteral("config directory is not usable: %1").arg(directory);
         return false;
     }
 
     QStringList errors;
-    for (const QString &name : {QStringLiteral("config.conf"),
-                                QStringLiteral("matugen.conf")}) {
+    for (const QString &name : {QStringLiteral("config.conf"), QStringLiteral("matugen.conf")}) {
         QString error;
         if (!copyDefaultFile(name, &error))
             errors.push_back(error);
@@ -242,8 +232,8 @@ KeytopConfig loadKeytopConfig()
     KeytopConfig result;
     result.palette = fallbackPalette();
 
-    const QHash<QString, QString> defaultColors =
-        readIni(defaultFilePath(QStringLiteral("colors.conf")));
+    const QHash<QString, QString> defaultColors
+        = readIni(defaultFilePath(QStringLiteral("colors.conf")));
     applyColor(defaultColors, QStringLiteral("surface"), &result.palette.surface);
     applyColor(defaultColors, QStringLiteral("on_surface"), &result.palette.onSurface);
     applyColor(defaultColors, QStringLiteral("primary"), &result.palette.primary);
@@ -251,10 +241,10 @@ KeytopConfig loadKeytopConfig()
     applyColor(defaultColors, QStringLiteral("outline_variant"), &result.palette.outline);
     applyColor(defaultColors, QStringLiteral("tertiary"), &result.palette.warning);
     applyColor(defaultColors, QStringLiteral("error"), &result.palette.critical);
-    applyColor(defaultColors, QStringLiteral("primary_container"),
-               &result.palette.selectedBackground);
-    applyColor(defaultColors, QStringLiteral("on_primary_container"),
-               &result.palette.selectedForeground);
+    applyColor(
+        defaultColors, QStringLiteral("primary_container"), &result.palette.selectedBackground);
+    applyColor(
+        defaultColors, QStringLiteral("on_primary_container"), &result.palette.selectedForeground);
     applyColor(defaultColors, QStringLiteral("secondary"), &result.palette.good);
 
     const QHash<QString, QString> colors = readIni(keytopColorsPath());
@@ -265,32 +255,29 @@ KeytopConfig loadKeytopConfig()
     applyColor(colors, QStringLiteral("outline_variant"), &result.palette.outline);
     applyColor(colors, QStringLiteral("tertiary"), &result.palette.warning);
     applyColor(colors, QStringLiteral("error"), &result.palette.critical);
-    applyColor(colors, QStringLiteral("primary_container"),
-               &result.palette.selectedBackground);
-    applyColor(colors, QStringLiteral("on_primary_container"),
-               &result.palette.selectedForeground);
+    applyColor(colors, QStringLiteral("primary_container"), &result.palette.selectedBackground);
+    applyColor(colors, QStringLiteral("on_primary_container"), &result.palette.selectedForeground);
     applyColor(colors, QStringLiteral("secondary"), &result.palette.good);
 
-    const QHash<QString, QString> defaults =
-        readIni(defaultFilePath(QStringLiteral("config.conf")));
-    const QString defaultInterval = value(
-        defaults, QStringLiteral("general"), QStringLiteral("update_interval_ms"));
+    const QHash<QString, QString> defaults
+        = readIni(defaultFilePath(QStringLiteral("config.conf")));
+    const QString defaultInterval
+        = value(defaults, QStringLiteral("general"), QStringLiteral("update_interval_ms"));
     if (!defaultInterval.isEmpty()) {
         bool ok = false;
         const int parsed = defaultInterval.toInt(&ok);
         if (ok && parsed >= 250 && parsed <= 60000)
             result.updateIntervalMs = parsed;
     }
-    const QString defaultUnit = normalized(value(
-        defaults, QStringLiteral("general"), QStringLiteral("temperature_unit")));
-    if (defaultUnit == QStringLiteral("celsius")
-        || defaultUnit == QStringLiteral("fahrenheit")) {
+    const QString defaultUnit = normalized(
+        value(defaults, QStringLiteral("general"), QStringLiteral("temperature_unit")));
+    if (defaultUnit == QStringLiteral("celsius") || defaultUnit == QStringLiteral("fahrenheit")) {
         result.temperatureUnit = defaultUnit;
     }
 
     const QHash<QString, QString> config = readIni(keytopConfigPath());
-    const QString interval = value(config, QStringLiteral("general"),
-                                   QStringLiteral("update_interval_ms"));
+    const QString interval
+        = value(config, QStringLiteral("general"), QStringLiteral("update_interval_ms"));
     if (!interval.isEmpty()) {
         bool ok = false;
         const int parsed = interval.toInt(&ok);
@@ -301,13 +288,12 @@ KeytopConfig loadKeytopConfig()
                      qPrintable(interval));
     }
 
-    const QString unit = normalized(value(config, QStringLiteral("general"),
-                                         QStringLiteral("temperature_unit")));
+    const QString unit
+        = normalized(value(config, QStringLiteral("general"), QStringLiteral("temperature_unit")));
     if (unit == QStringLiteral("celsius") || unit == QStringLiteral("fahrenheit"))
         result.temperatureUnit = unit;
     else if (!unit.isEmpty())
-        qWarning("keytop: temperature_unit must be celsius or fahrenheit: %s",
-                 qPrintable(unit));
+        qWarning("keytop: temperature_unit must be celsius or fahrenheit: %s", qPrintable(unit));
 
     // config.conf is the explicit user override layer. The documented general
     // keys remain the only ordinary settings, but accepting a colors section
@@ -319,10 +305,8 @@ KeytopConfig loadKeytopConfig()
     applyColor(config, QStringLiteral("outline_variant"), &result.palette.outline);
     applyColor(config, QStringLiteral("tertiary"), &result.palette.warning);
     applyColor(config, QStringLiteral("error"), &result.palette.critical);
-    applyColor(config, QStringLiteral("primary_container"),
-               &result.palette.selectedBackground);
-    applyColor(config, QStringLiteral("on_primary_container"),
-               &result.palette.selectedForeground);
+    applyColor(config, QStringLiteral("primary_container"), &result.palette.selectedBackground);
+    applyColor(config, QStringLiteral("on_primary_container"), &result.palette.selectedForeground);
     applyColor(config, QStringLiteral("secondary"), &result.palette.good);
     return result;
 }

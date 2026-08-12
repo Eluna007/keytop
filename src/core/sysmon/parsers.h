@@ -75,8 +75,7 @@ CpuCounters parseProcStat(const QByteArray &contents);
 OptionalInteger parseProcBootTimeMs(const QByteArray &contents);
 MemoryCounters parseMeminfo(const QByteArray &contents);
 QHash<QString, NetworkCounter> parseProcNetDev(const QByteArray &contents);
-QString parseDefaultRouteInterface(const QByteArray &ipv4Routes,
-                                   const QByteArray &ipv6Routes);
+QString parseDefaultRouteInterface(const QByteArray &ipv4Routes, const QByteArray &ipv6Routes);
 QString composeDeviceCursorKey(const QString &name,
                                const QString &generation,
                                const QString &fallbackIdentity);

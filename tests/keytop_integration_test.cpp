@@ -28,9 +28,8 @@ private:
     Result run(const QStringList &arguments, int timeoutMs = 10000) const;
 };
 
-KeytopIntegrationTest::Result KeytopIntegrationTest::run(
-    const QStringList &arguments,
-    int timeoutMs) const
+KeytopIntegrationTest::Result KeytopIntegrationTest::run(const QStringList &arguments,
+                                                         int timeoutMs) const
 {
     QProcess process;
     process.start(QStringLiteral(KEYTOP_EXECUTABLE), arguments);
@@ -52,8 +51,7 @@ void KeytopIntegrationTest::helpDescribesStandaloneValueInterface()
     const Result result = run({QStringLiteral("--help")});
     QCOMPARE(result.exitCode, 0);
     QVERIFY(result.stderrText.isEmpty());
-    for (const QByteArray command :
-         {"keytop value", "keytop stream", "keytop --version"}) {
+    for (const QByteArray command : {"keytop value", "keytop stream", "keytop --version"}) {
         QVERIFY2(result.stdoutText.contains(command), command.constData());
     }
 }
@@ -69,8 +67,7 @@ void KeytopIntegrationTest::snapshotProducesVersionedJsonWithoutProcesses()
     QCOMPARE(result.exitCode, 0);
     QVERIFY(result.stderrText.isEmpty());
     QJsonParseError error;
-    const QJsonObject json =
-        QJsonDocument::fromJson(result.stdoutText, &error).object();
+    const QJsonObject json = QJsonDocument::fromJson(result.stdoutText, &error).object();
     QCOMPARE(error.error, QJsonParseError::NoError);
     QCOMPARE(json.value(QStringLiteral("schemaVersion")).toInt(), 1);
     QVERIFY(json.contains(QStringLiteral("timestampMs")));
@@ -90,8 +87,7 @@ void KeytopIntegrationTest::moduleCommandSelectsOnlyRequestedModule()
         QStringLiteral("json"),
     });
     QCOMPARE(result.exitCode, 0);
-    const QJsonObject json =
-        QJsonDocument::fromJson(result.stdoutText).object();
+    const QJsonObject json = QJsonDocument::fromJson(result.stdoutText).object();
     QVERIFY(json.contains(QStringLiteral("cpu")));
     QVERIFY(!json.contains(QStringLiteral("memory")));
     QVERIFY(!json.contains(QStringLiteral("system")));
@@ -108,8 +104,7 @@ void KeytopIntegrationTest::processesHonorsLimit()
         QStringLiteral("json"),
     });
     QCOMPARE(result.exitCode, 0);
-    const QJsonObject json =
-        QJsonDocument::fromJson(result.stdoutText).object();
+    const QJsonObject json = QJsonDocument::fromJson(result.stdoutText).object();
     QVERIFY(json.contains(QStringLiteral("processes")));
     QVERIFY(json.value(QStringLiteral("processes")).toArray().size() <= 1);
 }
@@ -117,18 +112,17 @@ void KeytopIntegrationTest::processesHonorsLimit()
 void KeytopIntegrationTest::streamProducesIndependentJsonLines()
 {
     QProcess process;
-    process.start(
-        QStringLiteral(KEYTOP_EXECUTABLE),
-        {
-            QStringLiteral("value"),
-            QStringLiteral("stream"),
-            QStringLiteral("--format"),
-            QStringLiteral("jsonl"),
-            QStringLiteral("--interval"),
-            QStringLiteral("100"),
-            QStringLiteral("--modules"),
-            QStringLiteral("cpu,memory"),
-        });
+    process.start(QStringLiteral(KEYTOP_EXECUTABLE),
+                  {
+                      QStringLiteral("value"),
+                      QStringLiteral("stream"),
+                      QStringLiteral("--format"),
+                      QStringLiteral("jsonl"),
+                      QStringLiteral("--interval"),
+                      QStringLiteral("100"),
+                      QStringLiteral("--modules"),
+                      QStringLiteral("cpu,memory"),
+                  });
     QVERIFY(process.waitForStarted(5000));
 
     QByteArray output;
@@ -150,14 +144,12 @@ void KeytopIntegrationTest::streamProducesIndependentJsonLines()
         if (line.trimmed().isEmpty())
             continue;
         QJsonParseError error;
-        const QJsonObject json =
-            QJsonDocument::fromJson(line, &error).object();
+        const QJsonObject json = QJsonDocument::fromJson(line, &error).object();
         QCOMPARE(error.error, QJsonParseError::NoError);
         QCOMPARE(json.value(QStringLiteral("schemaVersion")).toInt(), 1);
         QVERIFY(json.contains(QStringLiteral("cpu")));
         QVERIFY(json.contains(QStringLiteral("memory")));
-        const qint64 sequence =
-            json.value(QStringLiteral("sequence")).toInteger();
+        const qint64 sequence = json.value(QStringLiteral("sequence")).toInteger();
         QVERIFY(sequence > previousSequence);
         previousSequence = sequence;
         ++validLines;
@@ -187,15 +179,12 @@ void KeytopIntegrationTest::invalidOptionsUseStableUsageExit()
     });
     QCOMPARE(jsonResult.exitCode, 2);
     QVERIFY(jsonResult.stderrText.isEmpty());
-    const QJsonObject json =
-        QJsonDocument::fromJson(jsonResult.stdoutText).object();
+    const QJsonObject json = QJsonDocument::fromJson(jsonResult.stdoutText).object();
     QCOMPARE(json.value(QStringLiteral("schemaVersion")).toInt(), 1);
     QCOMPARE(json.value(QStringLiteral("ok")).toBool(), false);
-    QCOMPARE(json.value(QStringLiteral("error"))
-                 .toObject()
-                 .value(QStringLiteral("code"))
-                 .toString(),
-             QStringLiteral("usage_error"));
+    QCOMPARE(
+        json.value(QStringLiteral("error")).toObject().value(QStringLiteral("code")).toString(),
+        QStringLiteral("usage_error"));
 }
 
 void KeytopIntegrationTest::outputFailureReturnsDependencyExit()
@@ -226,9 +215,7 @@ void KeytopIntegrationTest::outputFailureReturnsDependencyExit()
 
     for (const QStringList &arguments : cases) {
         QProcess process;
-        process.setStandardOutputFile(
-            QStringLiteral("/dev/full"),
-            QIODevice::Truncate);
+        process.setStandardOutputFile(QStringLiteral("/dev/full"), QIODevice::Truncate);
         process.start(QStringLiteral(KEYTOP_EXECUTABLE), arguments);
         QVERIFY(process.waitForStarted(5000));
         QVERIFY(process.waitForFinished(5000));
