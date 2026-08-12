@@ -80,10 +80,16 @@ Requirements:
 - pkg-config
 - ncursesw
 
+The build directory is tied to the CMake generator used to create it. The
+commands below use Ninja; if `build/` was previously configured with another
+generator, use a fresh build directory or remove the old generated build
+directory before configuring it again.
+
 ```bash
 cmake -S . -B build \
   -G Ninja \
-  -DCMAKE_BUILD_TYPE=Release
+  -DCMAKE_BUILD_TYPE=Release \
+  -DBUILD_TESTING=ON
 
 cmake --build build
 ctest --test-dir build --output-on-failure
@@ -101,7 +107,14 @@ make check
 `make check` runs the C++ format check, compiler build, CTest, ShellCheck and
 `git diff --check`. It does not install system files or change user configuration.
 
-Install system-wide:
+Install to a user-local prefix without changing system files:
+
+```bash
+cmake --install build --prefix "$HOME/.local"
+```
+
+Make sure `$HOME/.local/bin` is in `PATH`. To install to the configured
+system-wide prefix instead:
 
 ```bash
 sudo cmake --install build

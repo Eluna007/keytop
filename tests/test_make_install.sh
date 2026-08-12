@@ -21,7 +21,12 @@ for name in config.conf matugen.conf colors.conf; do
     [[ -s "$stage_dir/usr/share/keytop/defaults/$name" ]]
 done
 [[ ! -e "$config_home" ]]
-expected_files=$'usr/bin/keytop\nusr/share/keytop/README.md\nusr/share/keytop/defaults/colors.conf\nusr/share/keytop/defaults/config.conf\nusr/share/keytop/defaults/matugen.conf'
+expected_files=$(printf '%s\n' \
+    'usr/bin/keytop' \
+    'usr/share/keytop/README.md' \
+    'usr/share/keytop/defaults/colors.conf' \
+    'usr/share/keytop/defaults/config.conf' \
+    'usr/share/keytop/defaults/matugen.conf' | sort)
 actual_files=$(find "$stage_dir" -type f -printf '%P\n' | sort)
 [[ "$actual_files" == "$expected_files" ]]
 
