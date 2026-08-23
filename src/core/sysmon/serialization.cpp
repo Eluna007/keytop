@@ -94,6 +94,13 @@ QJsonObject memoryJson(const MemoryInfo &memory)
 
 QJsonObject gpuJson(const GpuInfo &gpu)
 {
+    const QJsonObject capabilities{
+        {QStringLiteral("utilization"), gpu.capabilities.utilization},
+        {QStringLiteral("temperature"), gpu.capabilities.temperature},
+        {QStringLiteral("memory"), gpu.capabilities.memory},
+        {QStringLiteral("power"), gpu.capabilities.power},
+        {QStringLiteral("frequency"), gpu.capabilities.frequency},
+    };
     return {
         {QStringLiteral("available"), gpu.available},
         {QStringLiteral("supported"), gpu.supported},
@@ -102,6 +109,9 @@ QJsonObject gpuJson(const GpuInfo &gpu)
         {QStringLiteral("name"), gpu.name},
         {QStringLiteral("vendor"), gpu.vendor},
         {QStringLiteral("driver"), gpu.driver},
+        {QStringLiteral("provider"), gpu.provider},
+        {QStringLiteral("utilizationSource"), gpu.utilizationSource},
+        {QStringLiteral("capabilities"), capabilities},
         {QStringLiteral("utilizationPercent"), numberOrNull(gpu.utilizationPercent)},
         {QStringLiteral("temperatureCelsius"), numberOrNull(gpu.temperatureCelsius)},
         {QStringLiteral("vramTotalBytes"), integerOrNull(gpu.vramTotalBytes)},

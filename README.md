@@ -35,6 +35,11 @@ A standalone system monitor for Linux with an interactive terminal UI and machin
 
 `keytop` can be used completely on its own.
 
+GPU telemetry uses optional in-process providers: NVIDIA NVML is loaded dynamically,
+AMD uses kernel sysfs metrics, and Intel supports DRM fdinfo fallback for i915 and xe.
+No vendor SDK or vendor command-line utility is required to build keytop; missing runtime
+libraries only disable the corresponding optional provider.
+
 ## Usage
 
 Launch the interactive monitor:

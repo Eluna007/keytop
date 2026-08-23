@@ -1,11 +1,12 @@
 #include "collector.h"
+
+#include "gpu/gpu_manager.h"
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QProcessEnvironment>
 #include <QRegularExpression>
 #include <QSet>
-#include <QStandardPaths>
 #include <QStringList>
 
 #include <sys/utsname.h>
@@ -95,18 +96,10 @@ QString normalizedDmi(const QString &path)
 LinuxCollector::LinuxCollector()
 {
     loadStaticSystemInfo();
-    m_nvidiaProgram = QStandardPaths::findExecutable(QStringLiteral("nvidia-smi"));
-    m_nvidiaRefreshTimer.start();
+    m_gpuManager = std::make_unique<GpuManager>();
 }
 
-LinuxCollector::~LinuxCollector()
-{
-    if (m_nvidiaProcess.state() == QProcess::NotRunning)
-        return;
-
-    m_nvidiaProcess.kill();
-    m_nvidiaProcess.waitForFinished(500);
-}
+LinuxCollector::~LinuxCollector() = default;
 
 void LinuxCollector::loadStaticSystemInfo()
 {
@@ -268,7 +261,7 @@ RawSnapshot LinuxCollector::collect(const ModuleSet &modules)
         result.memory = collectMemory(&result.errors);
     }
     if (modules.contains(QStringLiteral("gpu")))
-        result.gpus = collectGpus(&result.errors);
+        result.gpus = m_gpuManager->sample(&result.errors);
     if (modules.contains(QStringLiteral("disk"))) {
         result.disks = collectDisks(&result.errors);
         result.diskTimestampNs = monotonicNsecs();

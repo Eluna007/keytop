@@ -79,6 +79,14 @@ struct MemoryInfo {
     OptionalNumber usagePercent;
 };
 
+struct GpuCapabilities {
+    bool utilization = false;
+    bool temperature = false;
+    bool memory = false;
+    bool power = false;
+    bool frequency = false;
+};
+
 struct GpuInfo {
     bool available = false;
     bool supported = false;
@@ -87,12 +95,15 @@ struct GpuInfo {
     QString name;
     QString vendor;
     QString driver;
+    QString provider;
+    QString utilizationSource;
     OptionalNumber utilizationPercent;
     OptionalNumber temperatureCelsius;
     OptionalInteger vramTotalBytes;
     OptionalInteger vramUsedBytes;
     OptionalNumber powerWatts;
     OptionalNumber frequencyMHz;
+    GpuCapabilities capabilities;
 };
 
 struct DiskInfo {

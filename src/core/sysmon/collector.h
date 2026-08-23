@@ -3,16 +3,17 @@
 #include "parsers.h"
 #include "types.h"
 
-#include <QElapsedTimer>
 #include <QHash>
-#include <QProcess>
 #include <QString>
 #include <QStringList>
 #include <QVector>
 
 #include <optional>
+#include <memory>
 
 namespace Clavis::Sysmon {
+
+class GpuManager;
 
 struct RawCpuInfo {
     CpuCounters counters;
@@ -72,7 +73,6 @@ private:
     SystemInfo collectSystem(QVector<Error> *errors) const;
     RawCpuInfo collectCpu(QVector<Error> *errors) const;
     MemoryCounters collectMemory(QVector<Error> *errors) const;
-    QVector<GpuInfo> collectGpus(QVector<Error> *errors);
     QVector<RawDiskInfo> collectDisks(QVector<Error> *errors) const;
     QVector<RawNetworkInterfaceInfo> collectNetwork(QString *defaultInterface,
                                                     QVector<Error> *errors) const;
@@ -81,21 +81,13 @@ private:
     collectProcesses(quint64 totalMemoryBytes, qint64 bootTimeMs, QVector<Error> *errors) const;
 
     void loadStaticSystemInfo();
-    QVector<GpuInfo> collectNvidiaGpus(QVector<Error> *errors);
-
     SystemInfo m_staticSystem;
     mutable QStringList m_cpuTemperaturePaths;
     mutable QString m_packageTemperaturePath;
     mutable QString m_packageEnergyPath;
     mutable QString m_packageEnergyRangePath;
     mutable QString m_fanPath;
-    QString m_nvidiaProgram;
-    QVector<GpuInfo> m_cachedNvidiaGpus;
-    QElapsedTimer m_nvidiaRefreshTimer;
-    QElapsedTimer m_nvidiaProbeTimer;
-    QProcess m_nvidiaProcess;
-    bool m_nvidiaProbeAttempted = false;
-    bool m_nvidiaProbePending = false;
+    std::unique_ptr<GpuManager> m_gpuManager;
 };
 
 } // namespace Clavis::Sysmon

@@ -1,6 +1,8 @@
 #include "sysmon/parsers.h"
 #include "sysmon/serialization.h"
 #include "sysmon/types.h"
+#include "sysmon/gpu/drm_helpers.h"
+#include "sysmon/gpu/gpu_provider.h"
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -31,6 +33,13 @@ private slots:
     void snapshotSerializationUsesStableUnitsAndModules();
     void batteryPercentageUsesPercentSuffix();
     void jsonLineIsOneCompleteObject();
+    void gpuPciIdentityIsNormalizedAndSorted();
+    void gpuPartialMetricsDriveCapabilitiesAndSerialization();
+    void drmFdinfoFirstDeltaAndResetAreUnavailable();
+    void drmFdinfoDeduplicatesClientsAndAggregatesPerEngine();
+    void drmFdinfoUsesBusiestEngineInsteadOfSumming();
+    void drmFdinfoHonorsEngineCapacity();
+    void gpuProviderFallbackAndHybridIdentityAreStable();
 };
 
 namespace {
@@ -367,6 +376,196 @@ void SysmonCoreTest::jsonLineIsOneCompleteObject()
     const QJsonDocument document = QJsonDocument::fromJson(line.trimmed(), &error);
     QCOMPARE(error.error, QJsonParseError::NoError);
     QVERIFY(document.isObject());
+}
+
+void SysmonCoreTest::gpuPciIdentityIsNormalizedAndSorted()
+{
+    QCOMPARE(normalizePciId(QStringLiteral("PCI:01:00.0")), QStringLiteral("0000:01:00.0"));
+    QCOMPARE(normalizePciId(QStringLiteral("0000:AB:02.1")), QStringLiteral("0000:ab:02.1"));
+    QVERIFY(normalizePciId(QStringLiteral("card0")).isEmpty());
+
+    GpuInfo later;
+    later.pciId = QStringLiteral("0000:02:00.0");
+    later.id = stableGpuId(later.pciId, {});
+    GpuInfo earlier;
+    earlier.pciId = QStringLiteral("01:00.0");
+    earlier.id = stableGpuId(earlier.pciId, {});
+    const QVector<GpuInfo> result = mergeAndSortGpus({{later, earlier}});
+    QCOMPARE(result.size(), 2);
+    QCOMPARE(result.at(0).id, QStringLiteral("pci:0000:01:00.0"));
+    QCOMPARE(result.at(1).id, QStringLiteral("pci:0000:02:00.0"));
+}
+
+void SysmonCoreTest::gpuPartialMetricsDriveCapabilitiesAndSerialization()
+{
+    GpuInfo gpu;
+    gpu.available = true;
+    gpu.id = QStringLiteral("pci:0000:01:00.0");
+    gpu.pciId = QStringLiteral("0000:01:00.0");
+    gpu.provider = QStringLiteral("fixture");
+    gpu.temperatureCelsius = 47.0;
+    updateGpuCapabilities(&gpu);
+    QVERIFY(gpu.supported);
+    QVERIFY(!gpu.capabilities.utilization);
+    QVERIFY(gpu.capabilities.temperature);
+    QVERIFY(!gpu.capabilities.memory);
+
+    Snapshot snapshot;
+    snapshot.requestedModules = {QStringLiteral("gpu")};
+    snapshot.gpus = {gpu};
+    const QJsonObject json
+        = snapshotToJson(snapshot).value(QStringLiteral("gpus")).toArray().first().toObject();
+    QCOMPARE(json.value(QStringLiteral("provider")).toString(), QStringLiteral("fixture"));
+    QVERIFY(json.value(QStringLiteral("utilizationPercent")).isNull());
+    QCOMPARE(json.value(QStringLiteral("capabilities"))
+                 .toObject()
+                 .value(QStringLiteral("temperature"))
+                 .toBool(),
+             true);
+    QCOMPARE(snapshotToJson(snapshot).value(QStringLiteral("schemaVersion")).toInt(), 1);
+}
+
+void SysmonCoreTest::drmFdinfoFirstDeltaAndResetAreUnavailable()
+{
+    const auto first = parseDrmFdinfo("drm-client-id:\t7\n"
+                                      "drm-pdev:\t0000:00:02.0\n"
+                                      "drm-cycles-render:\t100 ns\n"
+                                      "drm-total-cycles-render:\t1000 ns\n");
+    QVERIFY(first.has_value());
+    DrmFdinfoSnapshot initial;
+    insertDrmClient(&initial, *first);
+    QVERIFY(!calculateDrmFdinfoUtilization({}, initial, 1'000)
+                 .value(QStringLiteral("0000:00:02.0"))
+                 .has_value());
+
+    const auto reset = parseDrmFdinfo("drm-client-id: 7\n"
+                                      "drm-pdev: 0000:00:02.0\n"
+                                      "drm-cycles-render: 10 ns\n"
+                                      "drm-total-cycles-render: 20 ns\n");
+    DrmFdinfoSnapshot afterReset;
+    insertDrmClient(&afterReset, *reset);
+    QVERIFY(!calculateDrmFdinfoUtilization(initial, afterReset, 1'000)
+                 .value(QStringLiteral("0000:00:02.0"))
+                 .has_value());
+
+    const DrmFdinfoSnapshot held = advanceDrmFdinfoBaseline(initial, afterReset);
+    const auto belowHighWatermark = parseDrmFdinfo("drm-client-id: 7\n"
+                                                   "drm-pdev: 0000:00:02.0\n"
+                                                   "drm-cycles-render: 90 ns\n"
+                                                   "drm-total-cycles-render: 900 ns\n");
+    DrmFdinfoSnapshot catchingUp;
+    insertDrmClient(&catchingUp, *belowHighWatermark);
+    QVERIFY(!calculateDrmFdinfoUtilization(held, catchingUp, 1'000)
+                 .value(QStringLiteral("0000:00:02.0"))
+                 .has_value());
+
+    const DrmFdinfoSnapshot heldAgain = advanceDrmFdinfoBaseline(held, catchingUp);
+    const auto heldIterator = heldAgain.constBegin();
+    const DrmClientCounters &heldClient = heldIterator.value();
+    QCOMPARE(heldClient.engines.value(QStringLiteral("render")).busy, quint64(100));
+    QCOMPARE(heldClient.engines.value(QStringLiteral("render")).total, quint64(1000));
+}
+
+void SysmonCoreTest::drmFdinfoDeduplicatesClientsAndAggregatesPerEngine()
+{
+    const auto client = [](int id, quint64 busy, quint64 total) {
+        return parseDrmFdinfo(QStringLiteral("drm-client-id: %1\n"
+                                             "drm-pdev: 0000:00:02.0\n"
+                                             "drm-cycles-render: %2 ns\n"
+                                             "drm-total-cycles-render: %3 ns\n")
+                                  .arg(id)
+                                  .arg(busy)
+                                  .arg(total)
+                                  .toUtf8());
+    };
+    DrmFdinfoSnapshot before;
+    insertDrmClient(&before, *client(1, 100, 1000));
+    insertDrmClient(&before, *client(2, 200, 1000));
+    DrmFdinfoSnapshot after;
+    insertDrmClient(&after, *client(1, 120, 1100));
+    insertDrmClient(&after, *client(1, 120, 1100)); // duplicated fd
+    insertDrmClient(&after, *client(2, 230, 1100));
+    const OptionalNumber utilization
+        = calculateDrmFdinfoUtilization(before, after, 100).value(QStringLiteral("0000:00:02.0"));
+    QVERIFY(utilization.has_value());
+    QCOMPARE(*utilization, 50.0);
+}
+
+void SysmonCoreTest::drmFdinfoUsesBusiestEngineInsteadOfSumming()
+{
+    const auto sample = [](quint64 render, quint64 copy, quint64 total) {
+        return parseDrmFdinfo(QStringLiteral("drm-client-id: 9\n"
+                                             "drm-pdev: 0000:00:02.0\n"
+                                             "drm-cycles-render: %1 ns\n"
+                                             "drm-total-cycles-render: %3 ns\n"
+                                             "drm-cycles-copy: %2 ns\n"
+                                             "drm-total-cycles-copy: %3 ns\n")
+                                  .arg(render)
+                                  .arg(copy)
+                                  .arg(total)
+                                  .toUtf8());
+    };
+    DrmFdinfoSnapshot before;
+    insertDrmClient(&before, *sample(100, 200, 1000));
+    DrmFdinfoSnapshot after;
+    insertDrmClient(&after, *sample(170, 260, 1100));
+    const OptionalNumber utilization
+        = calculateDrmFdinfoUtilization(before, after, 100).value(QStringLiteral("0000:00:02.0"));
+    QVERIFY(utilization.has_value());
+    QCOMPARE(*utilization, 70.0);
+}
+
+void SysmonCoreTest::drmFdinfoHonorsEngineCapacity()
+{
+    const auto sample = [](quint64 busy, quint64 total) {
+        return parseDrmFdinfo(QStringLiteral("drm-client-id: 5\n"
+                                             "drm-pdev: 0000:00:02.0\n"
+                                             "drm-cycles-ccs: %1\n"
+                                             "drm-total-cycles-ccs: %2\n"
+                                             "drm-engine-capacity-ccs: 4\n")
+                                  .arg(busy)
+                                  .arg(total)
+                                  .toUtf8());
+    };
+    DrmFdinfoSnapshot before;
+    insertDrmClient(&before, *sample(100, 1000));
+    DrmFdinfoSnapshot after;
+    insertDrmClient(&after, *sample(300, 1100));
+    const OptionalNumber utilization
+        = calculateDrmFdinfoUtilization(before, after, 100).value(QStringLiteral("0000:00:02.0"));
+    QVERIFY(utilization.has_value());
+    QCOMPARE(*utilization, 50.0);
+}
+
+void SysmonCoreTest::gpuProviderFallbackAndHybridIdentityAreStable()
+{
+    GpuInfo intel;
+    intel.pciId = QStringLiteral("0000:00:02.0");
+    intel.id = stableGpuId(intel.pciId, {});
+    intel.provider = QStringLiteral("drm-fdinfo");
+    intel.utilizationPercent = 20.0;
+    GpuInfo nvidia;
+    nvidia.pciId = QStringLiteral("0000:01:00.0");
+    nvidia.id = stableGpuId(nvidia.pciId, {});
+    nvidia.provider = QStringLiteral("nvml");
+
+    const QVector<GpuInfo> fallbackOnly = mergeAndSortGpus({{}, {intel}});
+    QCOMPARE(fallbackOnly.size(), 1);
+    QCOMPARE(fallbackOnly.first().id, QStringLiteral("pci:0000:00:02.0"));
+    const QVector<GpuInfo> hybrid = mergeAndSortGpus({{nvidia}, {intel}});
+    QCOMPARE(hybrid.size(), 2);
+    QVERIFY(hybrid.at(0).id != hybrid.at(1).id);
+    QCOMPARE(stableGpuId(QStringLiteral("00:02.0"), {}), intel.id);
+    QCOMPARE(stableGpuId({}, QStringLiteral("nvml:GPU-fixture")),
+             QStringLiteral("nvml:GPU-fixture"));
+
+    GpuInfo nvidiaSysfs = nvidia;
+    nvidiaSysfs.provider = QStringLiteral("drm-sysfs");
+    nvidiaSysfs.temperatureCelsius = 42.0;
+    const QVector<GpuInfo> primaryProvider = mergeAndSortGpus({{nvidia}, {nvidiaSysfs}});
+    QCOMPARE(primaryProvider.size(), 1);
+    QCOMPARE(primaryProvider.first().provider, QStringLiteral("nvml"));
+    QVERIFY(!primaryProvider.first().temperatureCelsius.has_value());
 }
 
 QTEST_MAIN(SysmonCoreTest)

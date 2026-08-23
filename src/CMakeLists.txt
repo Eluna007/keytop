@@ -6,6 +6,12 @@ add_library(KeytopSysmon STATIC
     core/sysmon/collector_system.cpp
     core/sysmon/collector_devices.cpp
     core/sysmon/collector_processes.cpp
+    core/sysmon/gpu/gpu_provider.h
+    core/sysmon/gpu/gpu_manager.h
+    core/sysmon/gpu/gpu_manager.cpp
+    core/sysmon/gpu/drm_helpers.h
+    core/sysmon/gpu/drm_helpers.cpp
+    core/sysmon/gpu/nvidia_nvml_provider.cpp
     core/sysmon/sampler.h
     core/sysmon/sampler.cpp
     core/sysmon/serialization.h
@@ -15,6 +21,7 @@ set_target_properties(KeytopSysmon PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(KeytopSysmon PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/core")
 target_link_libraries(KeytopSysmon PUBLIC
     Qt6::Core
+    ${CMAKE_DL_LIBS}
 )
 
 add_executable(keytop

@@ -51,6 +51,27 @@ The exact field names are the JSON names emitted by `src/core/sysmon/serializati
 Module objects include their documented availability flag and may contain additional
 device-specific fields, but field type and unit changes are protocol changes.
 
+### GPU devices
+
+Each `gpus` entry keeps the schema-version-1 metric fields and adds stable identity and
+metric provenance. PCI devices use a normalized `pciId` such as `0000:01:00.0` and an
+`id` of `pci:0000:01:00.0`; non-PCI devices use a stable `drm:` fallback. The array is
+sorted by `id`, so DRM card numbering and provider enumeration order are not identities.
+
+`utilizationPercent` means the provider's best normalized device-level utilization in
+the range `0..100`. Native aggregate values use sources such as `nvml-device` or
+`sysfs-device`. Intel DRM fdinfo fallback reports `drm-fdinfo-engine-max`: clients are
+deduplicated, activity is aggregated per physical engine, and the busiest engine is used
+rather than summing unrelated engines. The first sample and invalid/reset deltas are
+`null`.
+
+The additive `provider`, `utilizationSource`, and `capabilities` fields describe the
+current sample. `capabilities` contains `utilization`, `temperature`, `memory`, `power`,
+and `frequency` booleans; a false capability corresponds to null metric fields. The
+legacy `supported` field remains and is true when at least one capability is available.
+NVML is loaded dynamically when present. Missing NVIDIA or Intel vendor runtimes do not
+prevent sysfs/fdinfo providers or other GPUs from being sampled.
+
 ## JSONL stream and exit status
 
 `stream` emits one complete compact JSON object per line, flushes after each line, and
