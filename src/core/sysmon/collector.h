@@ -71,14 +71,51 @@ public:
 
 private:
     SystemInfo collectSystem(QVector<Error> *errors) const;
-    RawCpuInfo collectCpu(QVector<Error> *errors) const;
+    RawCpuInfo collectCpu(QVector<Error> *errors);
     MemoryCounters collectMemory(QVector<Error> *errors) const;
-    QVector<RawDiskInfo> collectDisks(QVector<Error> *errors) const;
+    QVector<RawDiskInfo> collectDisks(QVector<Error> *errors);
     QVector<RawNetworkInterfaceInfo> collectNetwork(QString *defaultInterface,
-                                                    QVector<Error> *errors) const;
-    BatteryInfo collectBattery(QVector<Error> *errors) const;
+                                                    QVector<Error> *errors);
+    BatteryInfo collectBattery(QVector<Error> *errors);
     QVector<RawProcessInfo>
-    collectProcesses(quint64 totalMemoryBytes, qint64 bootTimeMs, QVector<Error> *errors) const;
+    collectProcesses(quint64 totalMemoryBytes, qint64 bootTimeMs, QVector<Error> *errors);
+
+    struct CpuFrequencyPolicy {
+        QString name;
+        QString currentPath;
+        QString fallbackCurrentPath;
+        int cpuCount = 1;
+        OptionalNumber minimumMHz;
+        OptionalNumber maximumMHz;
+    };
+    struct NetworkTopology {
+        int ifIndex = 0;
+        bool wireless = false;
+        QString basePath;
+        QString canonicalPath;
+    };
+    struct BatteryTopology {
+        QStringList entries;
+        QString batteryPath;
+        QString batteryName;
+        QStringList acPaths;
+        bool supported = true;
+    };
+    struct DiskTopology {
+        QByteArray filesystem;
+        QByteArray device;
+        QString blockName;
+        QString counterKey;
+        QString statPath;
+    };
+    struct ProcessMetadata {
+        quint64 startTicks = 0;
+        uint uid = 0;
+        QString name;
+        QString command;
+        QString executablePath;
+        QString user;
+    };
 
     void loadStaticSystemInfo();
     SystemInfo m_staticSystem;
@@ -87,6 +124,17 @@ private:
     mutable QString m_packageEnergyPath;
     mutable QString m_packageEnergyRangePath;
     mutable QString m_fanPath;
+    QStringList m_cpuPolicyNames;
+    QVector<CpuFrequencyPolicy> m_cpuFrequencyPolicies;
+    bool m_cpuFrequencyTopologyInitialized = false;
+    bool m_cpuUsingPolicyTopology = false;
+    QHash<QString, NetworkTopology> m_networkTopology;
+    quint64 m_networkTopologyValidationCounter = 0;
+    BatteryTopology m_batteryTopology;
+    QByteArray m_mountTopologyFingerprint;
+    QHash<QString, DiskTopology> m_diskTopology;
+    QHash<qint64, ProcessMetadata> m_processMetadata;
+    QHash<uint, QString> m_userNames;
     std::unique_ptr<GpuManager> m_gpuManager;
 };
 

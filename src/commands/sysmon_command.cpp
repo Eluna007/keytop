@@ -1,4 +1,5 @@
 #include "sysmon_command.h"
+#include "sysmon/cache_helpers.h"
 
 #include "sysmon/sampler.h"
 #include "sysmon/serialization.h"
@@ -325,6 +326,7 @@ CommandResult runStream(const Options &options)
 
     QElapsedTimer cadence;
     cadence.start();
+    qint64 nextDeadlineMs = 0;
     while (!streamStopRequested) {
         const Snapshot snapshot = sampler.sample(options.modules);
         const QByteArray bytes = jsonl ? snapshotToJsonLine(snapshot)
@@ -334,7 +336,8 @@ CommandResult runStream(const Options &options)
 
         // Do not try to "catch up" with back-to-back collection if a slow
         // sensor probe already exceeded the requested interval.
-        const qint64 nextDeadlineMs = cadence.elapsed() + options.intervalMs;
+        nextDeadlineMs
+            = nextCadenceDeadlineMs(nextDeadlineMs, cadence.elapsed(), options.intervalMs);
         while (!streamStopRequested) {
             const qint64 remaining = nextDeadlineMs - cadence.elapsed();
             if (remaining <= 0)

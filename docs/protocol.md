@@ -77,6 +77,9 @@ prevent sysfs/fdinfo providers or other GPUs from being sampled.
 `stream` emits one complete compact JSON object per line, flushes after each line, and
 stops on `SIGINT`, `SIGTERM` or `SIGHUP`. A consumer should parse each line independently
 and use `sequence` to detect ordering. `--interval` accepts `100..60000` milliseconds.
+Cadence uses monotonic absolute deadlines. Collection time therefore does not accumulate
+into interval drift; if a sample overruns one or more ticks, keytop skips missed deadlines
+and resumes at the next future deadline instead of emitting catch-up samples back-to-back.
 
 Exit codes are:
 

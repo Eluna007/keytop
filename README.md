@@ -151,6 +151,11 @@ temperature_unit=celsius
 
 Command-line options such as `--interval` override the configuration file.
 
+The Linux collector caches static CPU frequency policies, network interface identity,
+power-supply topology, disk identity, and process metadata. Dynamic counters and capacity
+remain sampled at the requested interval, while topology changes and PID reuse invalidate
+the corresponding cache entries.
+
 ## Intel RAPL
 
 When the optional RAPL helper is installed, `keytop` can expose CPU package power data to regular users through the packaged systemd socket.

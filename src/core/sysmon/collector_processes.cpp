@@ -1,4 +1,5 @@
 #include "collector.h"
+#include "cache_helpers.h"
 
 #include <QDir>
 #include <QFile>
@@ -81,7 +82,7 @@ QString fullCommand(const QByteArray &raw, const QString &fallback)
 
 QVector<RawProcessInfo> LinuxCollector::collectProcesses(quint64 totalMemoryBytes,
                                                          qint64 bootTimeMs,
-                                                         QVector<Error> *errors) const
+                                                         QVector<Error> *errors)
 {
     QVector<RawProcessInfo> result;
     const QDir proc(QStringLiteral("/proc"));
@@ -90,7 +91,7 @@ QVector<RawProcessInfo> LinuxCollector::collectProcesses(quint64 totalMemoryByte
     const long clockTicks = ::sysconf(_SC_CLK_TCK);
     const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
     int permissionFailures = 0;
-    QHash<uint, QString> users;
+    QHash<qint64, ProcessMetadata> nextMetadata;
 
     result.reserve(entries.size());
     for (const QString &entry : entries) {
@@ -137,23 +138,36 @@ QVector<RawProcessInfo> LinuxCollector::collectProcesses(quint64 totalMemoryByte
             }
         }
 
-        process.info.command
-            = fullCommand(readAll(base + QStringLiteral("/cmdline")), process.info.name);
-        process.info.executablePath = QFileInfo(base + QStringLiteral("/exe")).symLinkTarget();
-
-        const QFileInfo directoryInfo(base);
-        const uint uid = directoryInfo.ownerId();
-        if (uid == std::numeric_limits<uint>::max()) {
-            ++permissionFailures;
+        ProcessMetadata metadata;
+        const auto cached = m_processMetadata.constFind(pid);
+        if (cached != m_processMetadata.cend()
+            && processIdentityMatches(cached->startTicks, stat.startTicks)
+            && cached->name == stat.name) {
+            metadata = *cached;
         } else {
-            auto user = users.constFind(uid);
-            if (user == users.cend()) {
-                user = users.insert(uid, userNameForUid(static_cast<uid_t>(uid)));
+            metadata.startTicks = stat.startTicks;
+            metadata.name = stat.name;
+            metadata.command
+                = fullCommand(readAll(base + QStringLiteral("/cmdline")), process.info.name);
+            metadata.executablePath = QFileInfo(base + QStringLiteral("/exe")).symLinkTarget();
+            const uint uid = QFileInfo(base).ownerId();
+            metadata.uid = uid;
+            if (uid == std::numeric_limits<uint>::max()) {
+                ++permissionFailures;
+            } else {
+                auto user = m_userNames.constFind(uid);
+                if (user == m_userNames.cend())
+                    user = m_userNames.insert(uid, userNameForUid(static_cast<uid_t>(uid)));
+                metadata.user = *user;
             }
-            process.info.user = *user;
         }
+        process.info.command = metadata.command;
+        process.info.executablePath = metadata.executablePath;
+        process.info.user = metadata.user;
+        nextMetadata.insert(pid, metadata);
         result.push_back(process);
     }
+    m_processMetadata = std::move(nextMetadata);
 
     if (result.isEmpty()) {
         errors->push_back({

@@ -1,4 +1,5 @@
 #include "sysmon/parsers.h"
+#include "sysmon/cache_helpers.h"
 #include "sysmon/serialization.h"
 #include "sysmon/types.h"
 #include "sysmon/gpu/drm_helpers.h"
@@ -40,6 +41,11 @@ private slots:
     void drmFdinfoUsesBusiestEngineInsteadOfSumming();
     void drmFdinfoHonorsEngineCapacity();
     void gpuProviderFallbackAndHybridIdentityAreStable();
+    void cadenceUsesAbsoluteDeadlinesAndSkipsMissedTicks();
+    void cpuPolicyTopologyIsNormalized();
+    void topologyCacheInvalidatesForChangesAndMissingPaths();
+    void networkIdentityTracksIfIndexReplacement();
+    void processIdentityRejectsPidReuse();
 };
 
 namespace {
@@ -245,6 +251,46 @@ void SysmonCoreTest::processCpuHandlesPidResetAndZeroInterval()
     QVERIFY(!processCpuPercent(150, 100, 100, 1.0).has_value());
     QVERIFY(!processCpuPercent(100, 150, 100, 0.0).has_value());
     QVERIFY(!processCpuPercent(100, 150, 0, 1.0).has_value());
+}
+
+void SysmonCoreTest::cadenceUsesAbsoluteDeadlinesAndSkipsMissedTicks()
+{
+    QCOMPARE(nextCadenceDeadlineMs(0, 150, 2000), qint64(2000));
+    QCOMPARE(nextCadenceDeadlineMs(2000, 2150, 2000), qint64(4000));
+    QCOMPARE(nextCadenceDeadlineMs(4000, 8500, 2000), qint64(10000));
+    QVERIFY(nextCadenceDeadlineMs(4000, 8500, 2000) > 8500);
+}
+
+void SysmonCoreTest::cpuPolicyTopologyIsNormalized()
+{
+    QCOMPARE(normalizedCpuPolicyNames({QStringLiteral("policy10"),
+                                       QStringLiteral("policy2"),
+                                       QStringLiteral("cpu0"),
+                                       QStringLiteral("policy2"),
+                                       QStringLiteral("policyx")}),
+             QStringList({QStringLiteral("policy2"), QStringLiteral("policy10")}));
+}
+
+void SysmonCoreTest::topologyCacheInvalidatesForChangesAndMissingPaths()
+{
+    QVERIFY(!topologyCacheNeedsRefresh("same", "same", true));
+    QVERIFY(topologyCacheNeedsRefresh("old", "new", true));
+    QVERIFY(topologyCacheNeedsRefresh("same", "same", false));
+    QVERIFY(topologyCacheNeedsRefresh({}, "present", true));
+}
+
+void SysmonCoreTest::networkIdentityTracksIfIndexReplacement()
+{
+    QCOMPARE(networkInterfaceIdentity(QStringLiteral("eth0"), 2), QStringLiteral("eth0#2"));
+    QVERIFY(networkInterfaceIdentity(QStringLiteral("eth0"), 2)
+            != networkInterfaceIdentity(QStringLiteral("eth0"), 7));
+}
+
+void SysmonCoreTest::processIdentityRejectsPidReuse()
+{
+    QVERIFY(processIdentityMatches(9000, 9000));
+    QVERIFY(!processIdentityMatches(9000, 9001));
+    QVERIFY(!processIdentityMatches(0, 0));
 }
 
 void SysmonCoreTest::unavailableMetricsSerializeAsNull()

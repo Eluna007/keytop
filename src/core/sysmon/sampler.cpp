@@ -1,4 +1,5 @@
 #include "sampler.h"
+#include "cache_helpers.h"
 
 #include <unistd.h>
 #include <time.h>
@@ -140,8 +141,8 @@ Snapshot Sampler::sample(const ModuleSet &modules)
         snapshot.network.interfaces.reserve(raw.networkInterfaces.size());
 
         for (RawNetworkInterfaceInfo &rawInterface : raw.networkInterfaces) {
-            const QString cursorKey = rawInterface.info.name + QLatin1Char('#')
-                                      + QString::number(rawInterface.info.ifIndex);
+            const QString cursorKey
+                = networkInterfaceIdentity(rawInterface.info.name, rawInterface.info.ifIndex);
             next.insert(cursorKey, rawInterface.counters);
             const auto previous = m_previousNetwork.constFind(cursorKey);
             if (previous != m_previousNetwork.cend() && seconds > 0.0) {
@@ -206,12 +207,6 @@ Snapshot Sampler::sample(const ModuleSet &modules)
         }
         m_previousProcesses = std::move(next);
         m_previousProcessNs = processTimestampNs;
-        std::stable_sort(snapshot.processes.begin(),
-                         snapshot.processes.end(),
-                         [](const ProcessInfo &left, const ProcessInfo &right) {
-                             return left.cpuUsagePercent.value_or(-1.0)
-                                    > right.cpuUsagePercent.value_or(-1.0);
-                         });
     }
 
     return snapshot;

@@ -1,5 +1,6 @@
 #include "collector.h"
 
+#include "cache_helpers.h"
 #include "gpu/gpu_manager.h"
 #include <QDir>
 #include <QFile>
@@ -307,7 +308,7 @@ SystemInfo LinuxCollector::collectSystem(QVector<Error> *errors) const
     return result;
 }
 
-RawCpuInfo LinuxCollector::collectCpu(QVector<Error> *errors) const
+RawCpuInfo LinuxCollector::collectCpu(QVector<Error> *errors)
 {
     RawCpuInfo result;
     bool statOk = false;
@@ -320,27 +321,82 @@ RawCpuInfo LinuxCollector::collectCpu(QVector<Error> *errors) const
         });
     }
 
-    QVector<double> frequencies;
-    const QDir cpuDir(QStringLiteral("/sys/devices/system/cpu"));
-    const QStringList cpuEntries = cpuDir.entryList(QStringList{QStringLiteral("cpu[0-9]*")},
-                                                    QDir::Dirs | QDir::NoDotAndDotDot);
-    for (const QString &entry : cpuEntries) {
-        const QString base = cpuDir.absoluteFilePath(entry) + QStringLiteral("/cpufreq/");
-        OptionalNumber frequency = readNumber(base + QStringLiteral("scaling_cur_freq"), 0.001);
-        if (!frequency)
-            frequency = readNumber(base + QStringLiteral("cpuinfo_cur_freq"), 0.001);
-        if (frequency)
-            frequencies.push_back(*frequency);
-
-        const OptionalNumber minimum = readNumber(base + QStringLiteral("cpuinfo_min_freq"), 0.001);
-        const OptionalNumber maximum = readNumber(base + QStringLiteral("cpuinfo_max_freq"), 0.001);
-        if (minimum && (!result.frequencyMinMHz || *minimum < *result.frequencyMinMHz)) {
-            result.frequencyMinMHz = minimum;
+    const auto discoverPolicies = [this]() {
+        m_cpuFrequencyTopologyInitialized = true;
+        m_cpuFrequencyPolicies.clear();
+        const QDir policyRoot(QStringLiteral("/sys/devices/system/cpu/cpufreq"));
+        m_cpuPolicyNames
+            = normalizedCpuPolicyNames(policyRoot.entryList(QDir::Dirs | QDir::NoDotAndDotDot));
+        m_cpuUsingPolicyTopology = !m_cpuPolicyNames.isEmpty();
+        for (const QString &name : std::as_const(m_cpuPolicyNames)) {
+            const QString base = policyRoot.absoluteFilePath(name) + QLatin1Char('/');
+            const int cpuCount
+                = std::max(1,
+                           static_cast<int>(readText(base + QStringLiteral("affected_cpus"))
+                                                .split(' ', Qt::SkipEmptyParts)
+                                                .size()));
+            m_cpuFrequencyPolicies.push_back({
+                name,
+                base + QStringLiteral("scaling_cur_freq"),
+                base + QStringLiteral("cpuinfo_cur_freq"),
+                cpuCount,
+                readNumber(base + QStringLiteral("cpuinfo_min_freq"), 0.001),
+                readNumber(base + QStringLiteral("cpuinfo_max_freq"), 0.001),
+            });
         }
-        if (maximum && (!result.frequencyMaxMHz || *maximum > *result.frequencyMaxMHz)) {
-            result.frequencyMaxMHz = maximum;
+
+        if (!m_cpuFrequencyPolicies.isEmpty())
+            return;
+        const QDir cpuRoot(QStringLiteral("/sys/devices/system/cpu"));
+        m_cpuPolicyNames = cpuRoot.entryList(QStringList{QStringLiteral("cpu[0-9]*")},
+                                             QDir::Dirs | QDir::NoDotAndDotDot);
+        for (const QString &name : std::as_const(m_cpuPolicyNames)) {
+            const QString base = cpuRoot.absoluteFilePath(name) + QStringLiteral("/cpufreq/");
+            if (!QFileInfo::exists(base))
+                continue;
+            m_cpuFrequencyPolicies.push_back({
+                name,
+                base + QStringLiteral("scaling_cur_freq"),
+                base + QStringLiteral("cpuinfo_cur_freq"),
+                1,
+                readNumber(base + QStringLiteral("cpuinfo_min_freq"), 0.001),
+                readNumber(base + QStringLiteral("cpuinfo_max_freq"), 0.001),
+            });
+        }
+    };
+
+    const QDir policyRoot(QStringLiteral("/sys/devices/system/cpu/cpufreq"));
+    const QStringList currentPolicyNames
+        = normalizedCpuPolicyNames(policyRoot.entryList(QDir::Dirs | QDir::NoDotAndDotDot));
+    if (!m_cpuFrequencyTopologyInitialized
+        || (m_cpuUsingPolicyTopology && currentPolicyNames != m_cpuPolicyNames)
+        || (!m_cpuUsingPolicyTopology && !currentPolicyNames.isEmpty())) {
+        discoverPolicies();
+    }
+
+    QVector<double> frequencies;
+    bool missingPolicyPath = false;
+    for (const CpuFrequencyPolicy &policy : std::as_const(m_cpuFrequencyPolicies)) {
+        OptionalNumber frequency = readNumber(policy.currentPath, 0.001);
+        if (!frequency)
+            frequency = readNumber(policy.fallbackCurrentPath, 0.001);
+        if (frequency) {
+            for (int index = 0; index < policy.cpuCount; ++index)
+                frequencies.push_back(*frequency);
+        } else if (!QFileInfo::exists(policy.currentPath)
+                   && !QFileInfo::exists(policy.fallbackCurrentPath))
+            missingPolicyPath = true;
+        if (policy.minimumMHz
+            && (!result.frequencyMinMHz || *policy.minimumMHz < *result.frequencyMinMHz)) {
+            result.frequencyMinMHz = policy.minimumMHz;
+        }
+        if (policy.maximumMHz
+            && (!result.frequencyMaxMHz || *policy.maximumMHz > *result.frequencyMaxMHz)) {
+            result.frequencyMaxMHz = policy.maximumMHz;
         }
     }
+    if (missingPolicyPath)
+        discoverPolicies();
     if (!frequencies.isEmpty()) {
         double sum = 0.0;
         for (double value : frequencies)

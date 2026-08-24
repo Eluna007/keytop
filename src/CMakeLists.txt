@@ -2,6 +2,8 @@ add_library(KeytopSysmon STATIC
     core/sysmon/types.h
     core/sysmon/parsers.h
     core/sysmon/parsers.cpp
+    core/sysmon/cache_helpers.h
+    core/sysmon/cache_helpers.cpp
     core/sysmon/collector.h
     core/sysmon/collector_system.cpp
     core/sysmon/collector_devices.cpp

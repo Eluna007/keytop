@@ -1,5 +1,7 @@
 #include "collector.h"
+#include "cache_helpers.h"
 
+#include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -100,10 +102,22 @@ bool isAcType(const QString &type)
 
 } // namespace
 
-QVector<RawDiskInfo> LinuxCollector::collectDisks(QVector<Error> *errors) const
+QVector<RawDiskInfo> LinuxCollector::collectDisks(QVector<Error> *errors)
 {
     QVector<RawDiskInfo> result;
     QSet<QString> seenMounts;
+    const QByteArray mountFingerprint = QCryptographicHash::hash(
+        readAll(QStringLiteral("/proc/self/mountinfo")), QCryptographicHash::Sha256);
+    bool cachedPathsPresent = !m_diskTopology.isEmpty();
+    for (const DiskTopology &topology : std::as_const(m_diskTopology)) {
+        if (!topology.statPath.isEmpty() && !QFileInfo::exists(topology.statPath)) {
+            cachedPathsPresent = false;
+            break;
+        }
+    }
+    const bool refreshTopology = topologyCacheNeedsRefresh(
+        m_mountTopologyFingerprint, mountFingerprint, cachedPathsPresent);
+    QHash<QString, DiskTopology> nextTopology;
     const QList<QStorageInfo> volumes = QStorageInfo::mountedVolumes();
     for (const QStorageInfo &storage : volumes) {
         if (!storage.isValid() || !storage.isReady() || storage.rootPath().isEmpty()
@@ -124,6 +138,20 @@ QVector<RawDiskInfo> LinuxCollector::collectDisks(QVector<Error> *errors) const
             continue;
         seenMounts.insert(storage.rootPath());
 
+        DiskTopology topology = m_diskTopology.value(mountPoint);
+        if (refreshTopology || topology.device != storage.device()
+            || topology.filesystem != storage.fileSystemType()) {
+            topology.filesystem = storage.fileSystemType();
+            topology.device = storage.device();
+            topology.blockName = blockDeviceName(storage.device());
+            topology.counterKey = blockDeviceCursorKey(topology.blockName);
+            topology.statPath
+                = topology.blockName.isEmpty()
+                      ? QString()
+                      : QStringLiteral("/sys/class/block/%1/stat").arg(topology.blockName);
+        }
+        nextTopology.insert(mountPoint, topology);
+
         RawDiskInfo disk;
         disk.info.available = true;
         disk.info.mountPoint = storage.rootPath();
@@ -139,14 +167,13 @@ QVector<RawDiskInfo> LinuxCollector::collectDisks(QVector<Error> *errors) const
                                      / static_cast<double>(disk.info.totalBytes);
         }
 
-        const QString blockName = blockDeviceName(storage.device());
-        disk.counterKey = blockDeviceCursorKey(blockName);
-        if (!blockName.isEmpty()) {
-            disk.counters = parseDiskStatLine(
-                readAll(QStringLiteral("/sys/class/block/%1/stat").arg(blockName)));
-        }
+        disk.counterKey = topology.counterKey;
+        if (!topology.statPath.isEmpty())
+            disk.counters = parseDiskStatLine(readAll(topology.statPath));
         result.push_back(disk);
     }
+    m_diskTopology = std::move(nextTopology);
+    m_mountTopologyFingerprint = mountFingerprint;
     if (result.isEmpty()) {
         errors->push_back({
             QStringLiteral("disk"),
@@ -165,7 +192,7 @@ QVector<RawDiskInfo> LinuxCollector::collectDisks(QVector<Error> *errors) const
 }
 
 QVector<RawNetworkInterfaceInfo> LinuxCollector::collectNetwork(QString *defaultInterface,
-                                                                QVector<Error> *errors) const
+                                                                QVector<Error> *errors)
 {
     bool ok = false;
     const QHash<QString, NetworkCounter> counters
@@ -183,26 +210,39 @@ QVector<RawNetworkInterfaceInfo> LinuxCollector::collectNetwork(QString *default
                                                    readAll(QStringLiteral("/proc/net/ipv6_route")));
 
     QVector<RawNetworkInterfaceInfo> result;
+    QHash<QString, NetworkTopology> nextTopology;
+    const bool periodicValidation = (++m_networkTopologyValidationCounter % 30) == 0;
     const QStringList names = counters.keys();
     for (const QString &name : names) {
         RawNetworkInterfaceInfo interface;
         interface.info.available = true;
         interface.info.name = name;
-        bool ifIndexOk = false;
-        interface.info.ifIndex
-            = readText(QStringLiteral("/sys/class/net/%1/ifindex").arg(name)).toInt(&ifIndexOk);
-        if (!ifIndexOk || interface.info.ifIndex <= 0)
-            interface.info.ifIndex = 0;
+        const QString basePath = QStringLiteral("/sys/class/net/%1").arg(name);
+        const QString canonicalPath = QFileInfo(basePath).canonicalFilePath();
+        NetworkTopology topology = m_networkTopology.value(name);
+        const bool refresh = topology.basePath.isEmpty() || canonicalPath.isEmpty()
+                             || topology.canonicalPath != canonicalPath || periodicValidation;
+        if (refresh) {
+            bool ifIndexOk = false;
+            topology.ifIndex = readText(basePath + QStringLiteral("/ifindex")).toInt(&ifIndexOk);
+            if (!ifIndexOk || topology.ifIndex <= 0)
+                topology.ifIndex = 0;
+            topology.wireless = QFileInfo::exists(basePath + QStringLiteral("/wireless"));
+            topology.basePath = basePath;
+            topology.canonicalPath = canonicalPath;
+        }
+        nextTopology.insert(name, topology);
+        interface.info.ifIndex = topology.ifIndex;
         interface.info.loopback = name == QStringLiteral("lo");
-        interface.info.wireless
-            = QFileInfo::exists(QStringLiteral("/sys/class/net/%1/wireless").arg(name));
-        const QString state = readText(QStringLiteral("/sys/class/net/%1/operstate").arg(name));
+        interface.info.wireless = topology.wireless;
+        const QString state = readText(topology.basePath + QStringLiteral("/operstate"));
         interface.info.up = state == QStringLiteral("up") || state == QStringLiteral("unknown");
         interface.counters = counters.value(name);
         interface.info.downloadTotalBytes = interface.counters.receiveBytes;
         interface.info.uploadTotalBytes = interface.counters.transmitBytes;
         result.push_back(interface);
     }
+    m_networkTopology = std::move(nextTopology);
     const auto activeDefault
         = std::find_if(result.cbegin(),
                        result.cend(),
@@ -231,7 +271,7 @@ QVector<RawNetworkInterfaceInfo> LinuxCollector::collectNetwork(QString *default
     return result;
 }
 
-BatteryInfo LinuxCollector::collectBattery(QVector<Error> *errors) const
+BatteryInfo LinuxCollector::collectBattery(QVector<Error> *errors)
 {
     BatteryInfo result;
     result.supported = true;
@@ -246,35 +286,50 @@ BatteryInfo LinuxCollector::collectBattery(QVector<Error> *errors) const
         return result;
     }
 
-    std::optional<bool> acOnline;
-    QString batteryPath;
-    QString fallbackBatteryPath;
-    QString batteryName;
-    QString fallbackBatteryName;
-    for (const QString &entry : supplies.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
-        const QString path = supplies.absoluteFilePath(entry);
-        const QString type = readText(path + QStringLiteral("/type"));
-        if (type.compare(QStringLiteral("Battery"), Qt::CaseInsensitive) == 0) {
-            if (fallbackBatteryPath.isEmpty()) {
-                fallbackBatteryPath = path;
-                fallbackBatteryName = entry;
+    const QStringList entries = supplies.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+    const bool cachedBatteryPresent = m_batteryTopology.batteryPath.isEmpty()
+                                      || QFileInfo::exists(m_batteryTopology.batteryPath);
+    bool cachedAcPresent = true;
+    for (const QString &path : std::as_const(m_batteryTopology.acPaths))
+        cachedAcPresent = cachedAcPresent && QFileInfo::exists(path);
+    if (entries != m_batteryTopology.entries || !cachedBatteryPresent || !cachedAcPresent) {
+        BatteryTopology topology;
+        topology.entries = entries;
+        QString fallbackBatteryPath;
+        QString fallbackBatteryName;
+        for (const QString &entry : entries) {
+            const QString path = supplies.absoluteFilePath(entry);
+            const QString type = readText(path + QStringLiteral("/type"));
+            if (type.compare(QStringLiteral("Battery"), Qt::CaseInsensitive) == 0) {
+                if (fallbackBatteryPath.isEmpty()) {
+                    fallbackBatteryPath = path;
+                    fallbackBatteryName = entry;
+                }
+                const OptionalInteger present = readInteger(path + QStringLiteral("/present"));
+                if (topology.batteryPath.isEmpty() && (!present || *present > 0)) {
+                    topology.batteryPath = path;
+                    topology.batteryName = entry;
+                }
+            } else if (isAcType(type)) {
+                topology.acPaths.push_back(path);
             }
-            const OptionalInteger present = readInteger(path + QStringLiteral("/present"));
-            if (batteryPath.isEmpty() && (!present || *present > 0)) {
-                batteryPath = path;
-                batteryName = entry;
-            }
-        } else if (isAcType(type)) {
-            const OptionalInteger online = readInteger(path + QStringLiteral("/online"));
-            if (online)
-                acOnline = acOnline.value_or(false) || *online > 0;
         }
+        if (topology.batteryPath.isEmpty()) {
+            topology.batteryPath = fallbackBatteryPath;
+            topology.batteryName = fallbackBatteryName;
+        }
+        m_batteryTopology = std::move(topology);
+    }
+
+    std::optional<bool> acOnline;
+    for (const QString &path : std::as_const(m_batteryTopology.acPaths)) {
+        const OptionalInteger online = readInteger(path + QStringLiteral("/online"));
+        if (online)
+            acOnline = acOnline.value_or(false) || *online > 0;
     }
     result.acOnline = acOnline;
-    if (batteryPath.isEmpty()) {
-        batteryPath = fallbackBatteryPath;
-        batteryName = fallbackBatteryName;
-    }
+    const QString batteryPath = m_batteryTopology.batteryPath;
+    const QString batteryName = m_batteryTopology.batteryName;
     if (batteryPath.isEmpty()) {
         result.available = true;
         result.present = false;
