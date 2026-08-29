@@ -334,6 +334,7 @@ void SysmonCoreTest::snapshotSerializationUsesStableUnitsAndModules()
     snapshot.sequence = 42;
     snapshot.intervalMs = 1000;
     snapshot.requestedModules = {
+        QStringLiteral("disk"),
         QStringLiteral("memory"),
         QStringLiteral("network"),
     };
@@ -343,6 +344,30 @@ void SysmonCoreTest::snapshotSerializationUsesStableUnitsAndModules()
     snapshot.memory.availableBytes = 512;
     snapshot.memory.freeBytes = 128;
     snapshot.memory.usagePercent = 50.0;
+    DiskInfo disk;
+    disk.available = true;
+    disk.device = QStringLiteral("/dev/nvme0n1");
+    disk.partitions = {
+        QStringLiteral("/dev/nvme0n1p2"),
+        QStringLiteral("/dev/nvme0n1p3"),
+    };
+    disk.mountPoints = {
+        QStringLiteral("/"),
+        QStringLiteral("/efi"),
+        QStringLiteral("/home"),
+    };
+    disk.filesystems = {
+        QStringLiteral("btrfs"),
+        QStringLiteral("vfat"),
+    };
+    disk.deviceTotalBytes = 4096;
+    disk.totalBytes = 2048;
+    disk.usedBytes = 1024;
+    disk.freeBytes = 1024;
+    disk.usagePercent = 50.0;
+    disk.readBytesPerSecond = 4096.0;
+    disk.writeBytesPerSecond = 2048.0;
+    snapshot.disks.push_back(disk);
     snapshot.network.available = true;
     snapshot.network.defaultInterface = QStringLiteral("eth0");
     snapshot.network.downloadBytesPerSecond = 123.5;
@@ -360,6 +385,7 @@ void SysmonCoreTest::snapshotSerializationUsesStableUnitsAndModules()
     QCOMPARE(json.value(QStringLiteral("sequence")).toInteger(), qint64(42));
     QVERIFY(json.contains(QStringLiteral("memory")));
     QVERIFY(json.contains(QStringLiteral("network")));
+    QVERIFY(json.contains(QStringLiteral("disks")));
     QVERIFY(!json.contains(QStringLiteral("cpu")));
     QCOMPARE(json.value(QStringLiteral("memory"))
                  .toObject()
@@ -376,6 +402,12 @@ void SysmonCoreTest::snapshotSerializationUsesStableUnitsAndModules()
                  .value(QStringLiteral("downloadBytesPerSecond"))
                  .toDouble(),
              123.5);
+    const QJsonObject diskJson = json.value(QStringLiteral("disks")).toArray().first().toObject();
+    QCOMPARE(diskJson.value(QStringLiteral("device")).toString(), QStringLiteral("/dev/nvme0n1"));
+    QCOMPARE(diskJson.value(QStringLiteral("partitions")).toArray().size(), 2);
+    QCOMPARE(diskJson.value(QStringLiteral("mountPoints")).toArray().size(), 3);
+    QCOMPARE(diskJson.value(QStringLiteral("deviceTotalBytes")).toInteger(), qint64(4096));
+    QCOMPARE(diskJson.value(QStringLiteral("readBytesPerSecond")).toDouble(), 4096.0);
     QCOMPARE(json.value(QStringLiteral("network"))
                  .toObject()
                  .value(QStringLiteral("wifiAvailable"))

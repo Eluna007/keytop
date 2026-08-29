@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace Clavis::Sysmon {
 
@@ -52,6 +53,33 @@ QString blockDeviceName(const QByteArray &device)
     if (canonical.isEmpty())
         canonical = info.absoluteFilePath();
     return QFileInfo(canonical).fileName();
+}
+
+QString physicalBlockDeviceName(const QString &name)
+{
+    QString current = name;
+    QSet<QString> visited;
+    while (!current.isEmpty() && !visited.contains(current)) {
+        visited.insert(current);
+        const QString blockPath = QStringLiteral("/sys/class/block/%1").arg(current);
+        if (QFileInfo::exists(blockPath + QStringLiteral("/partition"))) {
+            const QString canonical = QFileInfo(blockPath).canonicalFilePath();
+            const QString parentName = QFileInfo(QFileInfo(canonical).path()).fileName();
+            if (!parentName.isEmpty() && parentName != current) {
+                current = parentName;
+                continue;
+            }
+        }
+
+        const QStringList slaves = QDir(blockPath + QStringLiteral("/slaves"))
+                                       .entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
+        if (slaves.size() == 1 && slaves.first() != current) {
+            current = slaves.first();
+            continue;
+        }
+        break;
+    }
+    return current;
 }
 
 QString blockDeviceCursorKey(const QString &name)
@@ -104,7 +132,9 @@ bool isAcType(const QString &type)
 
 QVector<RawDiskInfo> LinuxCollector::collectDisks(QVector<Error> *errors)
 {
-    QVector<RawDiskInfo> result;
+    QHash<QString, RawDiskInfo> disksByDevice;
+    QHash<QString, QSet<QString>> seenPartitions;
+    QHash<QString, quint64> mountedTotals;
     QSet<QString> seenMounts;
     const QByteArray mountFingerprint = QCryptographicHash::hash(
         readAll(QStringLiteral("/proc/self/mountinfo")), QCryptographicHash::Sha256);
@@ -138,42 +168,76 @@ QVector<RawDiskInfo> LinuxCollector::collectDisks(QVector<Error> *errors)
             continue;
         seenMounts.insert(storage.rootPath());
 
-        DiskTopology topology = m_diskTopology.value(mountPoint);
-        if (refreshTopology || topology.device != storage.device()
-            || topology.filesystem != storage.fileSystemType()) {
-            topology.filesystem = storage.fileSystemType();
-            topology.device = storage.device();
-            topology.blockName = blockDeviceName(storage.device());
+        const QString partitionName = blockDeviceName(storage.device());
+        const QString blockName = physicalBlockDeviceName(partitionName);
+        if (blockName.isEmpty())
+            continue;
+        DiskTopology topology = m_diskTopology.value(blockName);
+        if (refreshTopology || topology.blockName != blockName) {
+            topology.blockName = blockName;
             topology.counterKey = blockDeviceCursorKey(topology.blockName);
             topology.statPath
                 = topology.blockName.isEmpty()
                       ? QString()
                       : QStringLiteral("/sys/class/block/%1/stat").arg(topology.blockName);
         }
-        nextTopology.insert(mountPoint, topology);
+        nextTopology.insert(blockName, topology);
 
-        RawDiskInfo disk;
+        RawDiskInfo &disk = disksByDevice[blockName];
         disk.info.available = true;
-        disk.info.mountPoint = storage.rootPath();
-        disk.info.filesystem = QString::fromUtf8(storage.fileSystemType());
-        disk.info.device = QString::fromUtf8(storage.device());
-        disk.info.totalBytes = static_cast<quint64>(std::max<qint64>(0, storage.bytesTotal()));
-        disk.info.freeBytes = static_cast<quint64>(std::max<qint64>(0, storage.bytesAvailable()));
-        if (disk.info.freeBytes > disk.info.totalBytes)
-            disk.info.freeBytes = disk.info.totalBytes;
-        disk.info.usedBytes = disk.info.totalBytes - disk.info.freeBytes;
+        disk.info.device = QStringLiteral("/dev/%1").arg(blockName);
+        disk.counterKey = topology.counterKey;
+        if (!topology.statPath.isEmpty())
+            disk.counters = parseDiskStatLine(readAll(topology.statPath));
+
+        const QString partitionDevice = QString::fromUtf8(storage.device());
+        if (!disk.info.partitions.contains(partitionDevice))
+            disk.info.partitions.push_back(partitionDevice);
+        if (!disk.info.mountPoints.contains(mountPoint))
+            disk.info.mountPoints.push_back(mountPoint);
+        const QString filesystem = QString::fromUtf8(storage.fileSystemType());
+        if (!filesystem.isEmpty() && !disk.info.filesystems.contains(filesystem))
+            disk.info.filesystems.push_back(filesystem);
+
+        if (!seenPartitions[blockName].contains(partitionDevice)) {
+            seenPartitions[blockName].insert(partitionDevice);
+            const quint64 filesystemTotal
+                = static_cast<quint64>(std::max<qint64>(0, storage.bytesTotal()));
+            const quint64 filesystemFree
+                = std::min(filesystemTotal,
+                           static_cast<quint64>(std::max<qint64>(0, storage.bytesAvailable())));
+            mountedTotals[blockName] += filesystemTotal;
+            disk.info.usedBytes += filesystemTotal - filesystemFree;
+        }
+    }
+    m_diskTopology = std::move(nextTopology);
+    m_mountTopologyFingerprint = mountFingerprint;
+
+    QVector<RawDiskInfo> result;
+    result.reserve(disksByDevice.size());
+    for (auto iterator = disksByDevice.begin(); iterator != disksByDevice.end(); ++iterator) {
+        RawDiskInfo &disk = iterator.value();
+        const QString blockName = iterator.key();
+        const OptionalInteger sectors
+            = readInteger(QStringLiteral("/sys/class/block/%1/size").arg(blockName));
+        if (sectors && *sectors > 0
+            && static_cast<quint64>(*sectors) <= std::numeric_limits<quint64>::max() / 512ULL) {
+            disk.info.deviceTotalBytes = static_cast<quint64>(*sectors) * 512ULL;
+        }
+        disk.info.totalBytes = mountedTotals.value(blockName);
+        if (disk.info.totalBytes == 0)
+            disk.info.totalBytes = disk.info.deviceTotalBytes;
+        disk.info.usedBytes = std::min(disk.info.usedBytes, disk.info.totalBytes);
+        disk.info.freeBytes = disk.info.totalBytes - disk.info.usedBytes;
         if (disk.info.totalBytes > 0) {
             disk.info.usagePercent = static_cast<double>(disk.info.usedBytes) * 100.0
                                      / static_cast<double>(disk.info.totalBytes);
         }
-
-        disk.counterKey = topology.counterKey;
-        if (!topology.statPath.isEmpty())
-            disk.counters = parseDiskStatLine(readAll(topology.statPath));
-        result.push_back(disk);
+        std::sort(disk.info.partitions.begin(), disk.info.partitions.end());
+        std::sort(disk.info.mountPoints.begin(), disk.info.mountPoints.end());
+        std::sort(disk.info.filesystems.begin(), disk.info.filesystems.end());
+        result.push_back(std::move(disk));
     }
-    m_diskTopology = std::move(nextTopology);
-    m_mountTopologyFingerprint = mountFingerprint;
     if (result.isEmpty()) {
         errors->push_back({
             QStringLiteral("disk"),
@@ -182,11 +246,7 @@ QVector<RawDiskInfo> LinuxCollector::collectDisks(QVector<Error> *errors)
         });
     }
     std::sort(result.begin(), result.end(), [](const RawDiskInfo &left, const RawDiskInfo &right) {
-        if (left.info.mountPoint == QStringLiteral("/"))
-            return true;
-        if (right.info.mountPoint == QStringLiteral("/"))
-            return false;
-        return left.info.mountPoint < right.info.mountPoint;
+        return left.info.device < right.info.device;
     });
     return result;
 }

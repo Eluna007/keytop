@@ -111,6 +111,10 @@ struct DiskInfo {
     QString mountPoint;
     QString filesystem;
     QString device;
+    QStringList partitions;
+    QStringList mountPoints;
+    QStringList filesystems;
+    quint64 deviceTotalBytes = 0;
     quint64 totalBytes = 0;
     quint64 usedBytes = 0;
     quint64 freeBytes = 0;

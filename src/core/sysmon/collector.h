@@ -102,8 +102,6 @@ private:
         bool supported = true;
     };
     struct DiskTopology {
-        QByteArray filesystem;
-        QByteArray device;
         QString blockName;
         QString counterKey;
         QString statPath;

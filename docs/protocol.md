@@ -72,6 +72,23 @@ legacy `supported` field remains and is true when at least one capability is ava
 NVML is loaded dynamically when present. Missing NVIDIA or Intel vendor runtimes do not
 prevent sysfs/fdinfo providers or other GPUs from being sampled.
 
+### Disk devices
+
+Each `disks` entry represents one physical block device rather than one mounted
+filesystem. `device` is the normalized parent block path, for example
+`/dev/nvme0n1`; separate `/`, `/home`, and EFI mounts on that drive do not create
+duplicate entries. Partition devices, mount paths, and filesystem types remain available
+as the additive string arrays `partitions`, `mountPoints`, and `filesystems`. The legacy
+singular `mountPoint` and `filesystem` fields are empty for physical-disk entries.
+
+`readBytesPerSecond`, `writeBytesPerSecond`, `readIops`, and `writeIops` are sampled from
+the parent block device counters, so they describe whole-device activity.
+`deviceTotalBytes` comes from the parent device sector count. `totalBytes`, `usedBytes`,
+and `freeBytes` aggregate mounted filesystem capacity once per distinct partition, so an
+unmounted filesystem is not incorrectly reported as free space; if no mounted capacity is
+available, `totalBytes` falls back to `deviceTotalBytes`. `usagePercent` is
+`usedBytes / totalBytes * 100`. The first rate sample remains `null`.
+
 ## JSONL stream and exit status
 
 `stream` emits one complete compact JSON object per line, flushes after each line, and
