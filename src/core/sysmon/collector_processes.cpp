@@ -1,17 +1,21 @@
 #include "collector.h"
 #include "cache_helpers.h"
 
-#include <QDir>
+#include <QByteArrayView>
 #include <QFile>
 #include <QFileInfo>
-#include <QRegularExpression>
 
+#include <dirent.h>
+#include <fcntl.h>
 #include <pwd.h>
 #include <sys/types.h>
 #include <unistd.h>
 
 #include <algorithm>
 #include <array>
+#include <cerrno>
+#include <cstdio>
+#include <memory>
 #include <limits>
 
 namespace Clavis::Sysmon {
@@ -22,6 +26,27 @@ QByteArray readAll(const QString &path)
 {
     QFile file(path);
     return file.open(QIODevice::ReadOnly) ? file.readAll() : QByteArray();
+}
+
+ProcessStat readProcessStat(int procFd, qint64 pid)
+{
+    char path[64];
+    std::snprintf(path, sizeof(path), "%lld/stat", static_cast<long long>(pid));
+    const int fd = ::openat(procFd, path, O_RDONLY | O_CLOEXEC);
+    if (fd < 0)
+        return {};
+
+    // Linux stat records fit within one page. Avoid QFile's path/metadata work
+    // and heap buffers for this file opened once per PID on every sample.
+    std::array<char, 4096> buffer;
+    ssize_t count;
+    do {
+        count = ::read(fd, buffer.data(), buffer.size());
+    } while (count < 0 && errno == EINTR);
+    ::close(fd);
+    if (count <= 0 || static_cast<size_t>(count) == buffer.size())
+        return {}; // Do not parse a truncated record.
+    return parseProcessStat(QByteArrayView(buffer.data(), count));
 }
 
 QString userNameForUid(uid_t uid)
@@ -82,26 +107,32 @@ QString fullCommand(const QByteArray &raw, const QString &fallback)
 
 QVector<RawProcessInfo> LinuxCollector::collectProcesses(quint64 totalMemoryBytes,
                                                          qint64 bootTimeMs,
+                                                         ProcessMemorySource processMemory,
                                                          QVector<Error> *errors)
 {
     QVector<RawProcessInfo> result;
-    const QDir proc(QStringLiteral("/proc"));
-    const QStringList entries = proc.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable);
+    const auto closeDirectory = [](DIR *directory) { ::closedir(directory); };
+    const std::unique_ptr<DIR, decltype(closeDirectory)> proc(::opendir("/proc"), closeDirectory);
     const long pageSize = ::sysconf(_SC_PAGESIZE);
     const long clockTicks = ::sysconf(_SC_CLK_TCK);
     const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
     int permissionFailures = 0;
     QHash<qint64, ProcessMetadata> nextMetadata;
 
-    result.reserve(entries.size());
-    for (const QString &entry : entries) {
+    result.reserve(m_processMetadata.size());
+    nextMetadata.reserve(m_processMetadata.size());
+    // /proc PID entries need neither name sorting nor per-directory access/stat
+    // checks. Opening stat below also handles exits and permission failures.
+    while (const dirent *entry = proc ? ::readdir(proc.get()) : nullptr) {
+        if (entry->d_name[0] < '0' || entry->d_name[0] > '9'
+            || (entry->d_type != DT_DIR && entry->d_type != DT_UNKNOWN))
+            continue;
         bool pidOk = false;
-        const qint64 pid = entry.toLongLong(&pidOk);
+        const qint64 pid = QByteArrayView(entry->d_name).toLongLong(&pidOk);
         if (!pidOk || pid <= 0)
             continue;
 
-        const QString base = proc.absoluteFilePath(entry);
-        const ProcessStat stat = parseProcessStat(readAll(base + QStringLiteral("/stat")));
+        const ProcessStat stat = readProcessStat(::dirfd(proc.get()), pid);
         if (!stat.valid || stat.pid != pid)
             continue; // The process may have exited between directory and read.
 
@@ -123,14 +154,29 @@ QVector<RawProcessInfo> LinuxCollector::collectProcesses(quint64 totalMemoryByte
                 = std::max<qint64>(0, (nowMs - process.info.startTimeMs) / 1000);
         }
 
-        const QList<QByteArray> statm
-            = readAll(base + QStringLiteral("/statm")).simplified().split(' ');
-        if (statm.size() >= 2 && pageSize > 0) {
-            bool rssOk = false;
-            const quint64 pages = statm.at(1).toULongLong(&rssOk);
-            if (rssOk
-                && pages <= std::numeric_limits<quint64>::max() / static_cast<quint64>(pageSize)) {
-                process.info.memoryBytes = pages * static_cast<quint64>(pageSize);
+        // The TUI uses stat's approximate RSS, as top-style monitors do. Keep
+        // statm for machine output and fall back to it for unusable stat RSS.
+        if (pageSize > 0) {
+            std::optional<quint64> residentBytes;
+            const quint64 bytesPerPage = static_cast<quint64>(pageSize);
+            if (processMemory == ProcessMemorySource::Stat && stat.residentPages
+                && static_cast<quint64>(*stat.residentPages)
+                       <= std::numeric_limits<quint64>::max() / bytesPerPage) {
+                const quint64 bytes = static_cast<quint64>(*stat.residentPages) * bytesPerPage;
+                if (totalMemoryBytes == 0 || bytes < totalMemoryBytes)
+                    residentBytes = bytes;
+            }
+            if (!residentBytes) {
+                const QString path
+                    = QStringLiteral("/proc/") + QString::number(pid) + QStringLiteral("/statm");
+                const QList<QByteArray> statm = readAll(path).simplified().split(' ');
+                bool rssOk = false;
+                const quint64 pages = statm.value(1).toULongLong(&rssOk);
+                if (rssOk && pages <= std::numeric_limits<quint64>::max() / bytesPerPage)
+                    residentBytes = pages * bytesPerPage;
+            }
+            if (residentBytes) {
+                process.info.memoryBytes = *residentBytes;
                 if (totalMemoryBytes > 0) {
                     process.info.memoryPercent = static_cast<double>(process.info.memoryBytes)
                                                  * 100.0 / static_cast<double>(totalMemoryBytes);
@@ -145,6 +191,7 @@ QVector<RawProcessInfo> LinuxCollector::collectProcesses(quint64 totalMemoryByte
             && cached->name == stat.name) {
             metadata = *cached;
         } else {
+            const QString base = QStringLiteral("/proc/") + QString::number(pid);
             metadata.startTicks = stat.startTicks;
             metadata.name = stat.name;
             metadata.command
@@ -164,8 +211,8 @@ QVector<RawProcessInfo> LinuxCollector::collectProcesses(quint64 totalMemoryByte
         process.info.command = metadata.command;
         process.info.executablePath = metadata.executablePath;
         process.info.user = metadata.user;
-        nextMetadata.insert(pid, metadata);
-        result.push_back(process);
+        nextMetadata.insert(pid, std::move(metadata));
+        result.push_back(std::move(process));
     }
     m_processMetadata = std::move(nextMetadata);
 

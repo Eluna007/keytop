@@ -15,6 +15,9 @@ namespace Clavis::Sysmon {
 
 class GpuManager;
 
+// Machine output keeps statm semantics; the TUI can reuse the cheaper stat RSS.
+enum class ProcessMemorySource { Statm, Stat };
+
 struct RawCpuInfo {
     CpuCounters counters;
     OptionalNumber frequencyCurrentMHz;
@@ -67,7 +70,8 @@ public:
     LinuxCollector();
     ~LinuxCollector();
 
-    RawSnapshot collect(const ModuleSet &modules);
+    RawSnapshot collect(const ModuleSet &modules,
+                        ProcessMemorySource processMemory = ProcessMemorySource::Statm);
 
 private:
     SystemInfo collectSystem(QVector<Error> *errors) const;
@@ -77,8 +81,10 @@ private:
     QVector<RawNetworkInterfaceInfo> collectNetwork(QString *defaultInterface,
                                                     QVector<Error> *errors);
     BatteryInfo collectBattery(QVector<Error> *errors);
-    QVector<RawProcessInfo>
-    collectProcesses(quint64 totalMemoryBytes, qint64 bootTimeMs, QVector<Error> *errors);
+    QVector<RawProcessInfo> collectProcesses(quint64 totalMemoryBytes,
+                                             qint64 bootTimeMs,
+                                             ProcessMemorySource processMemory,
+                                             QVector<Error> *errors);
 
     struct CpuFrequencyPolicy {
         QString name;

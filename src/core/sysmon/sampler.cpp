@@ -46,7 +46,7 @@ OptionalNumber energyPower(const OptionalInteger &previous,
 
 Sampler::Sampler() = default;
 
-Snapshot Sampler::sample(const ModuleSet &modules)
+Snapshot Sampler::sample(const ModuleSet &modules, ProcessMemorySource processMemory)
 {
     Snapshot snapshot;
     snapshot.timestampMs = QDateTime::currentMSecsSinceEpoch();
@@ -59,7 +59,7 @@ Snapshot Sampler::sample(const ModuleSet &modules)
     }
     m_lastSampleNs = sampleStartedNs;
 
-    RawSnapshot raw = m_collector.collect(modules);
+    RawSnapshot raw = m_collector.collect(modules, processMemory);
     const qint64 sampleFinishedNs = monotonicNsecs();
     snapshot.errors = std::move(raw.errors);
 
@@ -189,6 +189,7 @@ Snapshot Sampler::sample(const ModuleSet &modules)
         const double seconds = elapsedSeconds(m_previousProcessNs, processTimestampNs);
         const long ticksPerSecond = ::sysconf(_SC_CLK_TCK);
         QHash<qint64, ProcessCursor> next;
+        next.reserve(raw.processes.size());
         snapshot.processes.reserve(raw.processes.size());
         for (RawProcessInfo &rawProcess : raw.processes) {
             const ProcessCursor cursor{

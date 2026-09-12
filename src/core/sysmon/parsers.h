@@ -3,6 +3,7 @@
 #include "types.h"
 
 #include <QByteArray>
+#include <QByteArrayView>
 #include <QHash>
 #include <QString>
 #include <QVector>
@@ -68,6 +69,7 @@ struct ProcessStat {
     quint64 systemTicks = 0;
     int threadCount = 0;
     quint64 startTicks = 0;
+    OptionalInteger residentPages;
     bool valid = false;
 };
 
@@ -80,7 +82,7 @@ QString composeDeviceCursorKey(const QString &name,
                                const QString &generation,
                                const QString &fallbackIdentity);
 std::optional<DiskCounter> parseDiskStatLine(const QByteArray &contents);
-ProcessStat parseProcessStat(const QByteArray &contents);
+ProcessStat parseProcessStat(QByteArrayView contents);
 
 OptionalNumber percentageDelta(quint64 previousPart,
                                quint64 currentPart,

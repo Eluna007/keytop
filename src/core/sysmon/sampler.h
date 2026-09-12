@@ -13,7 +13,8 @@ class Sampler {
 public:
     Sampler();
 
-    Snapshot sample(const ModuleSet &modules = defaultModules());
+    Snapshot sample(const ModuleSet &modules = defaultModules(),
+                    ProcessMemorySource processMemory = ProcessMemorySource::Statm);
 
 private:
     struct ProcessCursor {

@@ -28,6 +28,9 @@ private slots:
     void deviceCursorChangesAcrossReplacement();
     void missingDeviceCannotReusePreviousCursor();
     void processStatHandlesSpacesAndParentheses();
+    void processStatResidentPages_data();
+    void processStatResidentPages();
+    void processStatRejectsMalformedCounters();
     void processCpuHandlesPidResetAndZeroInterval();
     void unavailableMetricsSerializeAsNull();
     void systemSerializationOmitsLoadSnapshotFields();
@@ -243,6 +246,53 @@ void SysmonCoreTest::processStatHandlesSpacesAndParentheses()
     QCOMPARE(stat.systemTicks, quint64(30));
     QCOMPARE(stat.threadCount, 5);
     QCOMPARE(stat.startTicks, quint64(9000));
+    QVERIFY(stat.residentPages.has_value());
+    QCOMPARE(*stat.residentPages, qint64(0));
+}
+
+void SysmonCoreTest::processStatResidentPages_data()
+{
+    QTest::addColumn<QByteArray>("tail");
+    QTest::addColumn<qint64>("pages");
+    QTest::newRow("resident-pages")
+        << QByteArray("4096 1234 18446744073709551615\n") << qint64(1234);
+    QTest::newRow("zero-rss") << QByteArray("0 0\n") << qint64(0);
+    QTest::newRow("whitespace") << QByteArray("\t4096  \t56\r\n") << qint64(56);
+    QTest::newRow("missing-rss") << QByteArray("4096\n") << qint64(-1);
+    QTest::newRow("negative-rss") << QByteArray("4096 -1\n") << qint64(-1);
+    QTest::newRow("overflow-rss") << QByteArray("4096 9223372036854775808\n") << qint64(-1);
+    QTest::newRow("malformed-rss") << QByteArray("4096 12x\n") << qint64(-1);
+}
+
+void SysmonCoreTest::processStatResidentPages()
+{
+    QFETCH(QByteArray, tail);
+    QFETCH(qint64, pages);
+    const ProcessStat stat = parseProcessStat("123 (worker) S 7 2 3 4 5 6 7 8 9 10 "
+                                              "120 30 0 0 20 0 5 0 9000 "
+                                              + tail);
+    QVERIFY(stat.valid);
+    QCOMPARE(stat.residentPages.has_value(), pages >= 0);
+    if (pages >= 0)
+        QCOMPARE(*stat.residentPages, pages);
+    QCOMPARE(stat.userTicks, quint64(120));
+    QCOMPARE(stat.startTicks, quint64(9000));
+}
+
+void SysmonCoreTest::processStatRejectsMalformedCounters()
+{
+    const QByteArray valid = "123 (worker ) name) S 7 2 3 4 5 6 7 8 9 10 120 30 0 0 20 0 5 0 9000";
+    // CPU/identity remain usable when optional memory fields are absent.
+    QVERIFY(parseProcessStat(valid).valid);
+    QVERIFY(!parseProcessStat(valid).residentPages.has_value());
+    QVERIFY(!parseProcessStat("123 worker S 7").valid);
+    QVERIFY(!parseProcessStat("123 (worker) S 7").valid);
+    QByteArray invalid = valid;
+    invalid.replace(" 120 ", " invalid ");
+    QVERIFY(!parseProcessStat(invalid).valid);
+    invalid = valid;
+    invalid.replace("9000", "18446744073709551616");
+    QVERIFY(!parseProcessStat(invalid).valid);
 }
 
 void SysmonCoreTest::processCpuHandlesPidResetAndZeroInterval()

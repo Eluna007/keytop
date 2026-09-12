@@ -156,6 +156,10 @@ power-supply topology, disk identity, and process metadata. Dynamic counters and
 remain sampled at the requested interval, while topology changes and PID reuse invalidate
 the corresponding cache entries.
 
+The TUI reads approximate process RSS from `/proc/PID/stat` alongside CPU counters,
+falling back to `statm` for missing or implausible values. Machine JSON/JSONL output
+continues to use `/proc/PID/statm`; its RSS can differ from the TUI.
+
 ## Intel RAPL
 
 When the optional RAPL helper is installed, `keytop` can expose CPU package power data to regular users through the packaged systemd socket.

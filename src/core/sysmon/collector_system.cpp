@@ -248,7 +248,7 @@ void LinuxCollector::loadStaticSystemInfo()
     }
 }
 
-RawSnapshot LinuxCollector::collect(const ModuleSet &modules)
+RawSnapshot LinuxCollector::collect(const ModuleSet &modules, ProcessMemorySource processMemory)
 {
     RawSnapshot result;
     if (modules.contains(QStringLiteral("system")))
@@ -276,8 +276,10 @@ RawSnapshot LinuxCollector::collect(const ModuleSet &modules)
     if (modules.contains(QStringLiteral("processes"))) {
         if (!result.system.available)
             result.system = collectSystem(&result.errors);
-        result.processes = collectProcesses(
-            result.memory.memTotalKiB * 1024ULL, result.system.bootTimeMs, &result.errors);
+        result.processes = collectProcesses(result.memory.memTotalKiB * 1024ULL,
+                                            result.system.bootTimeMs,
+                                            processMemory,
+                                            &result.errors);
         result.processTimestampNs = monotonicNsecs();
     }
     return result;

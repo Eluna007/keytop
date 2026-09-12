@@ -725,7 +725,7 @@ struct TopTui::Impl {
     void collectSnapshot()
     {
         try {
-            snapshot = sampler.sample(allModules());
+            snapshot = sampler.sample(allModules(), ProcessMemorySource::Stat);
             hasSnapshot = true;
             appendHistory(cpuHistory, snapshot.cpu.usagePercent);
             QSet<QString> activeGpuKeys;
@@ -1193,31 +1193,30 @@ struct TopTui::Impl {
         const qint64 previousPid = selectedPid;
         const int previousIndex = selectedIndex;
 
-        QVector<ProcessInfo> filtered;
+        QVector<const ProcessInfo *> filtered;
         filtered.reserve(snapshot.processes.size());
         for (const ProcessInfo &process : std::as_const(snapshot.processes)) {
             if (!processFilter.isEmpty()) {
-                const QString pid = QString::number(process.pid);
                 const bool matches = process.name.contains(processFilter, Qt::CaseInsensitive)
                                      || process.command.contains(processFilter, Qt::CaseInsensitive)
                                      || process.user.contains(processFilter, Qt::CaseInsensitive)
-                                     || pid.contains(processFilter, Qt::CaseInsensitive);
+                                     || QString::number(process.pid).contains(processFilter);
                 if (!matches)
                     continue;
             }
-            filtered.push_back(process);
+            filtered.push_back(&process);
         }
 
         processRows.clear();
         if (!treeMode) {
             std::sort(filtered.begin(),
                       filtered.end(),
-                      [this](const ProcessInfo &left, const ProcessInfo &right) {
-                          return processLess(left, right);
+                      [this](const ProcessInfo *left, const ProcessInfo *right) {
+                          return processLess(*left, *right);
                       });
             processRows.reserve(filtered.size());
-            for (const ProcessInfo &process : std::as_const(filtered))
-                processRows.push_back({process, 0, false, false});
+            for (const ProcessInfo *process : std::as_const(filtered))
+                processRows.push_back({*process, 0, false, false});
         } else {
             buildProcessTree(filtered);
         }
@@ -1239,29 +1238,30 @@ struct TopTui::Impl {
         ensureSelectionVisible();
     }
 
-    void buildProcessTree(const QVector<ProcessInfo> &processes)
+    void buildProcessTree(const QVector<const ProcessInfo *> &processes)
     {
-        QHash<qint64, ProcessInfo> byPid;
+        QHash<qint64, const ProcessInfo *> byPid;
         QHash<qint64, QVector<qint64>> children;
         QVector<qint64> roots;
         byPid.reserve(processes.size());
 
-        for (const ProcessInfo &process : processes) {
-            if (process.pid > 0)
-                byPid.insert(process.pid, process);
+        for (const ProcessInfo *process : processes) {
+            if (process->pid > 0)
+                byPid.insert(process->pid, process);
         }
-        for (const ProcessInfo &process : processes) {
-            if (process.pid <= 0)
+        for (const ProcessInfo *process : processes) {
+            if (process->pid <= 0)
                 continue;
-            if (process.ppid <= 0 || process.ppid == process.pid || !byPid.contains(process.ppid)) {
-                roots.push_back(process.pid);
+            if (process->ppid <= 0 || process->ppid == process->pid
+                || !byPid.contains(process->ppid)) {
+                roots.push_back(process->pid);
             } else {
-                children[process.ppid].push_back(process.pid);
+                children[process->ppid].push_back(process->pid);
             }
         }
 
         const auto idLess = [this, &byPid](qint64 left, qint64 right) {
-            return processLess(byPid.value(left), byPid.value(right));
+            return processLess(*byPid.value(left), *byPid.value(right));
         };
         std::sort(roots.begin(), roots.end(), idLess);
         for (auto iterator = children.begin(); iterator != children.end(); ++iterator)
@@ -1285,7 +1285,7 @@ struct TopTui::Impl {
             active.insert(pid);
             const int rowIndex = static_cast<int>(processRows.size());
             rowByPid.insert(pid, rowIndex);
-            processRows.push_back({byPid.value(pid), depth, false, false});
+            processRows.push_back({*byPid.value(pid), depth, false, false});
 
             const QVector<qint64> processChildren = children.value(pid);
             if (depth >= 63 && !processChildren.isEmpty()) {

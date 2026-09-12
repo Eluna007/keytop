@@ -3,6 +3,7 @@
 #include <QStringList>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 
 namespace Clavis::Sysmon {
@@ -230,7 +231,7 @@ std::optional<DiskCounter> parseDiskStatLine(const QByteArray &contents)
     return result;
 }
 
-ProcessStat parseProcessStat(const QByteArray &contents)
+ProcessStat parseProcessStat(QByteArrayView contents)
 {
     ProcessStat result;
     const qsizetype open = contents.indexOf('(');
@@ -239,10 +240,26 @@ ProcessStat parseProcessStat(const QByteArray &contents)
         return result;
 
     bool pidOk = false;
-    result.pid = contents.left(open).trimmed().toLongLong(&pidOk);
-    result.name = QString::fromUtf8(contents.mid(open + 1, close - open - 1));
-    const QList<QByteArray> fields = contents.mid(close + 1).simplified().split(' ');
-    if (!pidOk || fields.size() < 20)
+    result.pid = contents.first(open).trimmed().toLongLong(&pidOk);
+    result.name = QString::fromUtf8(contents.sliced(open + 1, close - open - 1));
+    // Read only through RSS (field 24). Views avoid allocating every field in
+    // every process on each sample, including the unused tail of /proc/PID/stat.
+    std::array<QByteArrayView, 22> fields;
+    const auto isSpace
+        = [](char value) { return value == ' ' || (value >= '\t' && value <= '\r'); };
+    qsizetype offset = close + 1;
+    size_t count = 0;
+    while (count < fields.size()) {
+        while (offset < contents.size() && isSpace(contents[offset]))
+            ++offset;
+        const qsizetype start = offset;
+        while (offset < contents.size() && !isSpace(contents[offset]))
+            ++offset;
+        if (start == offset)
+            break;
+        fields[count++] = contents.sliced(start, offset - start);
+    }
+    if (!pidOk || count < 20)
         return result;
 
     bool ppidOk = false;
@@ -256,6 +273,12 @@ ProcessStat parseProcessStat(const QByteArray &contents)
     result.systemTicks = fields.at(12).toULongLong(&systemOk);
     result.threadCount = fields.at(17).toInt(&threadsOk);
     result.startTicks = fields.at(19).toULongLong(&startOk);
+    if (count > 21) {
+        bool rssOk = false;
+        const qint64 pages = fields.at(21).toLongLong(&rssOk);
+        if (rssOk && pages >= 0)
+            result.residentPages = pages;
+    }
     result.valid = ppidOk && userOk && systemOk && threadsOk && startOk;
     return result;
 }
