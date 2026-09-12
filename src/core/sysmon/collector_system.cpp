@@ -114,6 +114,10 @@ void LinuxCollector::loadStaticSystemInfo()
     if (m_staticSystem.osName.isEmpty())
         m_staticSystem.osName = QStringLiteral("Linux");
     m_staticSystem.distroId = osReleaseValue(QStringLiteral("ID")).toLower();
+    m_staticSystem.distroIdLike = osReleaseValue(QStringLiteral("ID_LIKE"))
+                                      .toLower()
+                                      .simplified()
+                                      .split(QLatin1Char(' '), Qt::SkipEmptyParts);
 
     struct utsname uts{};
     if (::uname(&uts) == 0) {

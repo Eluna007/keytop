@@ -4,6 +4,108 @@
 #include <cmath>
 
 namespace Clavis::TopTuiDetail {
+
+namespace {
+struct DistroLogo {
+    DistroLogo(const QString &aliases, const QString &drawing)
+        : ids(aliases.split(QLatin1Char(' '))), art(drawing.split(QLatin1Char('\n')))
+    {}
+    QStringList ids;
+    QStringList art;
+};
+
+const DistroLogo distroLogos[] = {
+    {QStringLiteral("arch"),
+     QStringLiteral("      /\\\n     /  \\\n    / /\\ \\\n   /      \\\n  /   __   \\\n /   |  |   "
+                    "\\\n/____|  |____\\ ")},
+    {QStringLiteral("manjaro"),
+     QStringLiteral(" +-------+ ++\n | +---+ | ||\n | |   | | ||\n | |   | | ||\n | |   | | ||\n "
+                    "+-+   +-+ ++")},
+    {QStringLiteral("endeavouros"),
+     QStringLiteral("       /\\\n      /  \\\n     /    \\\n    /  /\\  \\\n   /  /  \\  \\\n  "
+                    "/__/____\\__\\ ")},
+    {QStringLiteral("nixos nix"),
+     QStringLiteral("  \\\\  //\n ==\\\\//==\n ===><===\n ==//\\\\==\n  //  \\\\ ")},
+    {QStringLiteral("ubuntu"),
+     QStringLiteral("   .---.\n  /  o  \\\n o   O   o\n  \\  o  /\n   '---' ")},
+    {QStringLiteral("debian"),
+     QStringLiteral("    .----.\n   / .--. \\\n  | /  _| |\n  | \\ (__/\n   \\ '---.\n    '.___ ")},
+    {QStringLiteral("fedora"),
+     QStringLiteral("    .----.\n   /  .--'\n  |   |_\n  | .-+-'\n  |(__|\n   '---' ")},
+    {QStringLiteral("linuxmint"),
+     QStringLiteral(" .----------.\n |  _  _    |\n | | |/ \\   |\n | | || | | |\n | |_|\\___/ |\n "
+                    "'----------' ")},
+    {QStringLiteral("opensuse opensuse-leap opensuse-tumbleweed opensuse-slowroll suse sles sled"),
+     QStringLiteral(
+         "    _______\n  /  o     \\\n (___   ___/\n     | |  __\n  ___| | / _)\n (_____/ \\__)")},
+    {QStringLiteral("rhel"),
+     QStringLiteral(
+         "     ______\n    /      \\\n   /________\\\n _/          \\_\n(______________)")},
+    {QStringLiteral("rocky"),
+     QStringLiteral(
+         "    .----.\n   /    / \\\n  /    /   \\\n |    / /|  |\n  \\  / /_| /\n   '------' ")},
+    {QStringLiteral("almalinux"),
+     QStringLiteral("     o  o\n   o  /\\  o\n  o  /  \\  o\n   o \\  / o\n     o\\/o\n      oo")},
+    {QStringLiteral("centos"),
+     QStringLiteral(
+         "  +--+ +--+\n  |  \\ /  |\n  +-- X --+\n  +-- X --+\n  |  / \\  |\n  +--+ +--+")},
+    {QStringLiteral("alpine"),
+     QStringLiteral("     /\\\n    /  \\ /\\\n   / /\\ /  \\\n  / /  / /\\ \\\n /_/__/ /__\\_\\ ")},
+    {QStringLiteral("gentoo"),
+     QStringLiteral(
+         "    .----.\n   /  __  \\\n  (  (__)  >\n   \\      /\n    \\    /\n     '--' ")},
+    {QStringLiteral("kali"),
+     QStringLiteral(
+         "   __..---.\n _/  _..--'\n<__ /___\n   '\\   '--.\n     '\\____/>\n       '--' ")},
+    {QStringLiteral("pop"),
+     QStringLiteral(
+         "  ___  ___  ___\n | _ \\| _ || _ \\\n |  _/|(_)||  _/\n |_|  |___||_|\n       !_")},
+    {QStringLiteral("elementary"),
+     QStringLiteral(
+         "    .----.\n   / .--. \\\n  | /___/ |\n  | \\   _/\n   \\ '---.\n    '----' ")},
+    {QStringLiteral("zorin"),
+     QStringLiteral("  _________\n /_______ /\n       / /\n     / /\n   / /_____\n  /________/")},
+    {QStringLiteral("slackware"),
+     QStringLiteral("    .----.\n   / .---'\n   \\ '--.\n    '--. \\\n   .___/ /\n   '----' ")},
+    {QStringLiteral("void"),
+     QStringLiteral("   .------.\n  /  .--.  \\\n |  /    \\  |\n |  \\    /  |\n  \\  '--'  /\n   "
+                    "'------' ")},
+    {QStringLiteral("deepin"),
+     QStringLiteral(
+         "   .------.\n  /   __   \\\n |   /  |  |\n |  |   |  |\n  \\  \\__| /\n   '------' ")},
+    {QStringLiteral("linux"),
+     QStringLiteral("     .--.\n    |o_o |\n    |:_/ |\n   /     \\\n  (|     |)\n /'\\_   _/`\\\n "
+                    "\\___)=(___/")},
+};
+
+const DistroLogo *findDistroLogo(const QString &id)
+{
+    const QString normalized = id.trimmed().toLower();
+    for (const auto &logo : distroLogos) {
+        if (logo.ids.contains(normalized))
+            return &logo;
+    }
+    return nullptr;
+}
+} // namespace
+
+QString distroLogoId(const QString &id, const QStringList &idLike)
+{
+    if (const auto *logo = findDistroLogo(id))
+        return logo->ids.first();
+    // os-release orders ID_LIKE from the closest relative to the most distant.
+    for (const QString &relative : idLike) {
+        if (const auto *logo = findDistroLogo(relative))
+            return logo->ids.first();
+    }
+    return QStringLiteral("linux");
+}
+
+QStringList distroMark(const QString &id, const QStringList &idLike)
+{
+    return findDistroLogo(distroLogoId(id, idLike))->art;
+}
+
 namespace {
 
 int divideRoundUp(int value, int divisor)

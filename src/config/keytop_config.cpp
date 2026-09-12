@@ -193,11 +193,6 @@ QString keytopColorsPath()
     return QDir(keytopConfigDirectory()).filePath(QStringLiteral("colors.conf"));
 }
 
-QString keytopMatugenPath()
-{
-    return QDir(keytopConfigDirectory()).filePath(QStringLiteral("matugen.conf"));
-}
-
 bool keytopInitializeConfig(QString *errorMessage)
 {
     if (errorMessage)
@@ -216,15 +211,7 @@ bool keytopInitializeConfig(QString *errorMessage)
         return false;
     }
 
-    QStringList errors;
-    for (const QString &name : {QStringLiteral("config.conf"), QStringLiteral("matugen.conf")}) {
-        QString error;
-        if (!copyDefaultFile(name, &error))
-            errors.push_back(error);
-    }
-    if (errorMessage)
-        *errorMessage = errors.join(QStringLiteral("; "));
-    return errors.isEmpty();
+    return copyDefaultFile(QStringLiteral("config.conf"), errorMessage);
 }
 
 KeytopConfig loadKeytopConfig()

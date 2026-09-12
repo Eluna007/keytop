@@ -24,6 +24,5 @@ struct KeytopConfig {
 QString keytopConfigDirectory();
 QString keytopConfigPath();
 QString keytopColorsPath();
-QString keytopMatugenPath();
 bool keytopInitializeConfig(QString *errorMessage = nullptr);
 KeytopConfig loadKeytopConfig();

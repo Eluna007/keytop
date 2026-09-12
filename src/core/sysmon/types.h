@@ -28,6 +28,7 @@ struct SystemInfo {
     QString hostName;
     QString osName;
     QString distroId;
+    QStringList distroIdLike; // Internal presentation metadata; not part of machine JSON.
     QString kernel;
     QString architecture;
     qint64 uptimeSeconds = 0;

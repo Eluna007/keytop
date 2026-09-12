@@ -8,6 +8,7 @@ class TopTuiHelpersTest : public QObject {
     Q_OBJECT
 
 private slots:
+    void distroLogoSelection();
     void borderlessMeterKeepsExactWidth();
     void coreGridPaginatesWithoutDroppingCores();
     void listPageLayoutClampsAndKeepsLastItems();
@@ -16,6 +17,28 @@ private slots:
     void refreshIntervalStaysWithinSupportedRange();
     void defaultProcessSelectionTracksFirstRow();
 };
+
+void TopTuiHelpersTest::distroLogoSelection()
+{
+    const QStringList independent
+        = {"arch",   "manjaro",   "endeavouros", "nixos", "ubuntu", "debian",
+           "fedora", "linuxmint", "opensuse",    "rhel",  "rocky",  "almalinux",
+           "centos", "alpine",    "gentoo",      "kali",  "pop",    "elementary",
+           "zorin",  "slackware", "void",        "deepin"};
+    for (const auto &id : independent) {
+        QCOMPARE(distroLogoId(id, {"debian"}), id);
+        QVERIFY(!distroMark(id).isEmpty());
+    }
+    QCOMPARE(distroLogoId("  Fedora  "), QString("fedora"));
+    QCOMPARE(distroLogoId("opensuse-tumbleweed"), QString("opensuse"));
+    QCOMPARE(distroLogoId("nix"), QString("nixos"));
+    QCOMPARE(distroLogoId("custom", {"unknown", "ubuntu", "debian"}), QString("ubuntu"));
+    QCOMPARE(distroLogoId("custom", {"debian", "ubuntu"}), QString("debian"));
+    QCOMPARE(distroLogoId("research-linux"), QString("linux"));
+    QCOMPARE(distroLogoId("not-ubuntu"), QString("linux"));
+    QCOMPARE(distroLogoId("", {"unknown"}), QString("linux"));
+    QCOMPARE(distroLogoId(""), QString("linux"));
+}
 
 void TopTuiHelpersTest::borderlessMeterKeepsExactWidth()
 {

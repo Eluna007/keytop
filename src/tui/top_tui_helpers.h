@@ -1,12 +1,16 @@
 #pragma once
 
 #include <QString>
+#include <QStringList>
 
 #include <deque>
 #include <optional>
 #include <vector>
 
 namespace Clavis::TopTuiDetail {
+
+QString distroLogoId(const QString &id, const QStringList &idLike = {});
+QStringList distroMark(const QString &id, const QStringList &idLike = {});
 
 struct CoreGridLayout {
     int columns = 0;

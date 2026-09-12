@@ -1465,7 +1465,6 @@ struct TopTui::Impl {
     void changeDiskPage(int direction);
     void adjustRefreshInterval(int deltaMs);
     void handleMouse();
-    QStringList distroMark(const QString &distroId) const;
     QString meter(const OptionalNumber &percent, int width) const;
     QString
     sparkline(const std::deque<double> &history, int width, double fixedMaximum = 0.0) const;
@@ -2181,48 +2180,6 @@ CoreGridLayout TopTui::Impl::drawCoreGrid(const Rect &plot,
     return layout;
 }
 
-QStringList TopTui::Impl::distroMark(const QString &distroId) const
-{
-    const QString id = distroId.toLower();
-    if (id.contains(QStringLiteral("arch")) || id.contains(QStringLiteral("manjaro"))
-        || id.contains(QStringLiteral("endeavour"))) {
-        return {
-            QStringLiteral("      /\\"),
-            QStringLiteral("     /  \\"),
-            QStringLiteral("    /\\   \\"),
-            QStringLiteral("   /      \\"),
-            QStringLiteral("  /   ,,   \\"),
-            QStringLiteral(" /   |  |   \\"),
-            QStringLiteral("/_-''    ''-_\\"),
-        };
-    }
-    if (id.contains(QStringLiteral("nixos")) || id == QStringLiteral("nix")) {
-        return {
-            QStringLiteral("  \\\\  //  "),
-            QStringLiteral(" ==\\\\//== "),
-            QStringLiteral(" ===><=== "),
-            QStringLiteral(" ==//\\\\== "),
-            QStringLiteral("  //  \\\\  "),
-        };
-    }
-    if (id.contains(QStringLiteral("ubuntu"))) {
-        return {
-            QStringLiteral("   .---.   "),
-            QStringLiteral("  /  o  \\  "),
-            QStringLiteral(" o   O   o "),
-            QStringLiteral("  \\  o  /  "),
-            QStringLiteral("   '---'   "),
-        };
-    }
-    return {
-        QStringLiteral("   .----.   "),
-        QStringLiteral("  / /\\  \\  "),
-        QStringLiteral(" | |  | |  "),
-        QStringLiteral("  \\ \\/ /  "),
-        QStringLiteral("   '----'   "),
-    };
-}
-
 QString TopTui::Impl::meter(const OptionalNumber &percent, int width) const
 {
     return borderlessMeter(percent, width, unicode);
@@ -2273,7 +2230,7 @@ void TopTui::Impl::drawSystem(const Rect &rect)
     }
 
     const SystemInfo &system = snapshot.system;
-    const QStringList mark = distroMark(system.distroId);
+    const QStringList mark = distroMark(system.distroId, system.distroIdLike);
     int markWidth = 0;
     for (const QString &line : mark)
         markWidth = std::max(markWidth, displayWidth(line));

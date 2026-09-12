@@ -37,7 +37,7 @@ void KeytopConfigTest::firstRunInitializationIsIdempotent()
     QString error;
     QVERIFY2(keytopInitializeConfig(&error), qPrintable(error));
     QVERIFY(QFileInfo::exists(directory.filePath(QStringLiteral("config.conf"))));
-    QVERIFY(QFileInfo::exists(directory.filePath(QStringLiteral("matugen.conf"))));
+    QVERIFY(!QFileInfo::exists(directory.filePath(QStringLiteral("matugen.conf"))));
     QVERIFY(!QFileInfo::exists(directory.filePath(QStringLiteral("colors.conf"))));
 
     const QString configPath = directory.filePath(QStringLiteral("config.conf"));
@@ -60,7 +60,16 @@ void KeytopConfigTest::firstRunInitializationIsIdempotent()
     QVERIFY(QFile::remove(configPath));
     QVERIFY(keytopInitializeConfig(&error));
     QVERIFY(QFileInfo::exists(configPath));
-    QVERIFY(QFileInfo::exists(directory.filePath(QStringLiteral("matugen.conf"))));
+    QVERIFY(!QFileInfo::exists(directory.filePath(QStringLiteral("matugen.conf"))));
+
+    QFile existingTemplate(directory.filePath(QStringLiteral("matugen.conf")));
+    QVERIFY(existingTemplate.open(QIODevice::WriteOnly));
+    const QByteArray customTemplate("# user-owned Matugen template\n");
+    QCOMPARE(existingTemplate.write(customTemplate), customTemplate.size());
+    existingTemplate.close();
+    QVERIFY(keytopInitializeConfig(&error));
+    QVERIFY(existingTemplate.open(QIODevice::ReadOnly));
+    QCOMPARE(existingTemplate.readAll(), customTemplate);
     qunsetenv("KEYTOP_CONFIG_DIR");
 }
 
