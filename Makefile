@@ -9,7 +9,7 @@ KEYTOP_BINARY := $(DESTDIR)$(PREFIX)/bin/keytop
 
 .DEFAULT_GOAL := all
 CPP_FILES := $(shell find src tests -type f \( -name '*.cpp' -o -name '*.h' -o -name '*.hpp' \) -print)
-SHELL_FILES := $(shell find tests -type f -name '*.sh' -print)
+SHELL_FILES := $(shell find tests scripts packaging -type f \( -name '*.sh' -o -name '*.install' -o -name 'PKGBUILD.in' \) -print)
 
 .PHONY: all build configure test format format-check shellcheck diff-check check install setcap uninstall clean help
 
@@ -58,7 +58,7 @@ shellcheck:
 			printf 'keytop: shellcheck is required for shellcheck\n' >&2; \
 			exit 127; \
 		}; \
-		shellcheck $(SHELL_FILES); \
+		shellcheck -s bash $(SHELL_FILES); \
 	fi
 
 diff-check:

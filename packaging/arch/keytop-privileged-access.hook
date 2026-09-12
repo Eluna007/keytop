@@ -1,0 +1,11 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = keytop
+Target = keytop-privileged-access
+
+[Action]
+Description = Restore opted-in keytop capabilities
+When = PostTransaction
+Exec = /usr/bin/bash -c 'if [[ -x /usr/lib/keytop/privileged-access ]]; then exec /usr/lib/keytop/privileged-access enable; fi'

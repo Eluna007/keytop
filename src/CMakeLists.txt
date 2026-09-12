@@ -57,6 +57,7 @@ target_link_libraries(keytop PRIVATE
     PkgConfig::NCURSESW
 )
 target_compile_definitions(keytop PRIVATE
+    KEYTOP_VERSION="${PROJECT_VERSION}"
     KEYTOP_DEFAULTS_INSTALL_DIR="${KEYTOP_DEFAULTS_INSTALL_DIR}"
     KEYTOP_BUILD_DEFAULTS_DIR="${KEYTOP_BUILD_DEFAULTS_DIR}"
 )

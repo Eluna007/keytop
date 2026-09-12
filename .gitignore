@@ -10,3 +10,6 @@ compile_commands.json
 *.so.*
 *.log
 __pycache__/
+
+# Local packaging and CI artifacts
+.packaging/

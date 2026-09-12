@@ -1,0 +1,146 @@
+{
+  "name": "keytop",
+  "repository": "StatIndet/keytop",
+  "versionFile": "VERSION",
+  "arch": "x86_64",
+  "sourceRoots": [
+    "VERSION",
+    "CMakeLists.txt",
+    "Makefile",
+    "src",
+    "include",
+    "defaults",
+    "tests",
+    "packaging",
+    "scripts",
+    "docs",
+    "LICENSE",
+    "README.md",
+    "AGENTS.md",
+    ".clang-format"
+  ],
+  "build": [
+    {
+      "package": "cmake",
+      "purpose": "Native configuration",
+      "defaultInstall": true
+    },
+    {
+      "package": "ninja",
+      "purpose": "Native build",
+      "defaultInstall": true
+    },
+    {
+      "package": "pkgconf",
+      "purpose": "ncurses discovery",
+      "defaultInstall": true
+    },
+    {
+      "package": "qt6-base",
+      "purpose": "Qt Core and Test",
+      "defaultInstall": true
+    },
+    {
+      "package": "ncurses",
+      "purpose": "Wide character TUI",
+      "defaultInstall": true
+    }
+  ],
+  "check": [
+    {
+      "package": "python",
+      "purpose": "Release and permission contracts",
+      "defaultInstall": true
+    },
+    {
+      "package": "git",
+      "purpose": "Isolated source archive contract fixtures",
+      "defaultInstall": true
+    }
+  ],
+  "ci": [
+    {
+      "package": "clang",
+      "purpose": "C++ formatting",
+      "defaultInstall": true
+    },
+    {
+      "package": "shellcheck",
+      "purpose": "Shell quality checks",
+      "defaultInstall": true
+    },
+    {
+      "package": "python",
+      "purpose": "Release tooling",
+      "defaultInstall": true
+    },
+    {
+      "package": "git",
+      "purpose": "Source version and diff checks",
+      "defaultInstall": true
+    },
+    {
+      "package": "actionlint",
+      "purpose": "GitHub Actions workflow validation",
+      "defaultInstall": false
+    }
+  ],
+  "packages": {
+    "keytop": {
+      "runtime": [
+        {
+          "package": "qt6-base",
+          "purpose": "Qt Core runtime",
+          "defaultInstall": true
+        },
+        {
+          "package": "ncurses",
+          "purpose": "Wide character TUI",
+          "defaultInstall": true
+        }
+      ],
+      "optional": [
+        {
+          "package": "keytop-privileged-access",
+          "purpose": "CAP_PERFMON and CAP_DAC_READ_SEARCH access",
+          "defaultInstall": false
+        },
+        {
+          "package": "nvidia-utils",
+          "purpose": "NVML for installed NVIDIA drivers; do not install on other hardware",
+          "defaultInstall": false
+        }
+      ]
+    },
+    "keytop-privileged-access": {
+      "runtime": [
+        {
+          "package": "keytop",
+          "purpose": "Target binary",
+          "defaultInstall": true
+        },
+        {
+          "package": "libcap",
+          "purpose": "Capability tools",
+          "defaultInstall": true
+        },
+        {
+          "package": "bash",
+          "purpose": "Authorization helper",
+          "defaultInstall": true
+        },
+        {
+          "package": "coreutils",
+          "purpose": "Owner and file checks",
+          "defaultInstall": true
+        },
+        {
+          "package": "pacman",
+          "purpose": "Package ownership verification",
+          "defaultInstall": true
+        }
+      ],
+      "optional": []
+    }
+  }
+}

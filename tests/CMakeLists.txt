@@ -39,3 +39,7 @@ add_test(
     COMMAND "${BASH_EXECUTABLE}"
             "${CMAKE_CURRENT_SOURCE_DIR}/test_make_install.sh"
 )
+
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_test(NAME keytop_release_contracts COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_release.py)
+add_test(NAME keytop_capability_contracts COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_capabilities.py)

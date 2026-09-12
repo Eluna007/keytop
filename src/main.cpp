@@ -15,7 +15,7 @@ CommandResult versionResult()
         0,
         false,
         {},
-        QStringLiteral("keytop 0.1.0"),
+        QStringLiteral("keytop " KEYTOP_VERSION),
         false,
     };
 }

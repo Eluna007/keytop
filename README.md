@@ -222,6 +222,17 @@ Logo selection uses an exact `os-release` `ID` match, then the first recognized
 Family fallback affects only the artwork; the displayed OS name remains unchanged.
 `ID_LIKE` is internal presentation metadata and does not change the machine JSON schema.
 
+
+## Arch packages and date releases
+
+Arch x86_64 packaging and GitHub Actions release workflows are included. Versions use
+`2026.9.12` (tag `v2026.9.12`), with `.1`, `.2` for further releases on the same day.
+See [release setup and AUR publishing](docs/releasing.md) and the
+[dependency inventory](docs/dependencies.md). Each repository remains independently buildable.
+
+AUR packages: `keytop` and optional `keytop-privileged-access`; see
+[installation and permissions](docs/installation.md). Base installation grants no capabilities.
+
 ## License
 
 See [LICENSE](LICENSE).
