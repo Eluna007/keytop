@@ -1,4 +1,4 @@
 # keytop source
 
-源码按 `core/`、`tui/` 和 `commands/` 分层。TUI 和机器接口共享 `core` sampler。
-
+The source is layered into `core/`, `tui/` and `commands/`. The TUI and the machine
+interfaces share the `core` sampler.

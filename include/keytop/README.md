@@ -1,4 +1,3 @@
 # keytop public headers
 
-稳定的内部协议头和未来可复用的公共类型放在这里。
-
+Stable internal protocol headers and public types intended for future reuse live here.

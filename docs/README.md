@@ -1,4 +1,3 @@
-# keytop 文档
+# keytop documentation
 
-协议、构建和安全边界文档放在此目录。
-
+Protocol, build and security boundary documentation lives in this directory.
