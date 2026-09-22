@@ -32,8 +32,8 @@
 #include <utility>
 #include <vector>
 
-using namespace Clavis::Sysmon;
-using namespace Clavis::TopTuiDetail;
+using namespace Apollo::Sysmon;
+using namespace Apollo::TopTuiDetail;
 
 namespace {
 
@@ -1540,7 +1540,7 @@ void TopTui::Impl::drawHeader()
 
     const SystemInfo &system = snapshot.system;
     const QString host
-        = hasSnapshot && !system.hostName.isEmpty() ? system.hostName : QStringLiteral("Clavis");
+        = hasSnapshot && !system.hostName.isEmpty() ? system.hostName : QStringLiteral("Apollo");
     const QString os = hasSnapshot && !system.osName.isEmpty() ? system.osName
                                                                : QStringLiteral("system monitor");
     const QString uptime
@@ -1552,9 +1552,9 @@ void TopTui::Impl::drawHeader()
     QString line;
     QString left;
     if (columns >= 92) {
-        left = QStringLiteral(" CLAVIS TOP  %1 · %2  uptime %3").arg(host, os, uptime);
+        left = QStringLiteral(" APOLLO TOP  %1 · %2  uptime %3").arg(host, os, uptime);
     } else {
-        left = QStringLiteral(" CLAVIS TOP  %1").arg(host);
+        left = QStringLiteral(" APOLLO TOP  %1").arg(host);
     }
     const QString right = QStringLiteral("%1%2  %3 ").arg(pausedState, intervalControl, clock);
     const int rightStart = std::max(0, columns - displayWidth(right));

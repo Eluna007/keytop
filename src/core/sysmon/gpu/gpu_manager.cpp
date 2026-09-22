@@ -12,7 +12,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace Clavis::Sysmon {
+namespace Apollo::Sysmon {
 
 namespace {
 
@@ -377,4 +377,4 @@ QVector<GpuInfo> GpuManager::sample(QVector<Error> *errors)
     return mergeAndSortGpus(samples);
 }
 
-} // namespace Clavis::Sysmon
+} // namespace Apollo::Sysmon

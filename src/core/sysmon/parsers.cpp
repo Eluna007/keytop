@@ -6,7 +6,7 @@
 #include <array>
 #include <cmath>
 
-namespace Clavis::Sysmon {
+namespace Apollo::Sysmon {
 
 namespace {
 
@@ -397,4 +397,4 @@ MemoryInfo calculateMemoryInfo(const MemoryCounters &counters)
     return result;
 }
 
-} // namespace Clavis::Sysmon
+} // namespace Apollo::Sysmon

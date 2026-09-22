@@ -4,7 +4,7 @@
 
 #include <memory>
 
-namespace Clavis::Sysmon {
+namespace Apollo::Sysmon {
 class Sampler;
 }
 
@@ -16,8 +16,8 @@ public:
         bool forceAscii = false;
     };
 
-    explicit TopTui(Clavis::Sysmon::Sampler &sampler);
-    TopTui(Clavis::Sysmon::Sampler &sampler, const Options &options);
+    explicit TopTui(Apollo::Sysmon::Sampler &sampler);
+    TopTui(Apollo::Sysmon::Sampler &sampler, const Options &options);
     ~TopTui();
 
     TopTui(const TopTui &) = delete;

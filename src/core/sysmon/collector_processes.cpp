@@ -18,7 +18,7 @@
 #include <memory>
 #include <limits>
 
-namespace Clavis::Sysmon {
+namespace Apollo::Sysmon {
 
 namespace {
 
@@ -232,4 +232,4 @@ QVector<RawProcessInfo> LinuxCollector::collectProcesses(quint64 totalMemoryByte
     return result;
 }
 
-} // namespace Clavis::Sysmon
+} // namespace Apollo::Sysmon

@@ -4,7 +4,7 @@
 
 #include <QVector>
 
-namespace Clavis::Sysmon {
+namespace Apollo::Sysmon {
 
 class GpuProvider {
 public:
@@ -17,4 +17,4 @@ QString normalizePciId(const QString &value);
 QString stableGpuId(const QString &pciId, const QString &fallback);
 QVector<GpuInfo> mergeAndSortGpus(const QVector<QVector<GpuInfo>> &providerResults);
 
-} // namespace Clavis::Sysmon
+} // namespace Apollo::Sysmon

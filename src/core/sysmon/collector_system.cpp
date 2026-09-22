@@ -17,7 +17,7 @@
 #include <algorithm>
 #include <limits>
 
-namespace Clavis::Sysmon {
+namespace Apollo::Sysmon {
 
 namespace {
 
@@ -459,4 +459,4 @@ MemoryCounters LinuxCollector::collectMemory(QVector<Error> *errors) const
     return result;
 }
 
-} // namespace Clavis::Sysmon
+} // namespace Apollo::Sysmon

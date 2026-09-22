@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace Clavis::TopTuiDetail {
+namespace Apollo::TopTuiDetail {
 
 namespace {
 struct DistroLogo {
@@ -309,4 +309,4 @@ int resolveProcessSelection(bool explicitlySelected,
     return std::clamp(previousIndex, 0, static_cast<int>(orderedPids.size()) - 1);
 }
 
-} // namespace Clavis::TopTuiDetail
+} // namespace Apollo::TopTuiDetail

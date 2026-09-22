@@ -20,7 +20,7 @@
 #include <csignal>
 #include <functional>
 
-using namespace Clavis::Sysmon;
+using namespace Apollo::Sysmon;
 
 namespace {
 
@@ -466,7 +466,7 @@ CommandResult SysmonCommand::run(const QStringList &arguments) const
 QString SysmonCommand::helpText()
 {
     return QStringLiteral(
-        "Clavis system monitor\n"
+        "Apollo system monitor\n"
         "\n"
         "Usage:\n"
         "  keytop value snapshot [--format json|text] [--modules LIST]\n"

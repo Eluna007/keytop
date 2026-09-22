@@ -5,7 +5,7 @@
 #include <memory>
 #include <vector>
 
-namespace Clavis::Sysmon {
+namespace Apollo::Sysmon {
 
 class GpuManager {
 public:
@@ -21,4 +21,4 @@ private:
 std::unique_ptr<GpuProvider> createNvidiaNvmlProvider();
 std::unique_ptr<GpuProvider> createDrmSysfsProvider();
 
-} // namespace Clavis::Sysmon
+} // namespace Apollo::Sysmon

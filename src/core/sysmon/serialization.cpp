@@ -7,7 +7,7 @@
 
 #include <cmath>
 
-namespace Clavis::Sysmon {
+namespace Apollo::Sysmon {
 
 namespace {
 
@@ -348,4 +348,4 @@ QString humanSnapshot(const Snapshot &snapshot)
     return output.trimmed();
 }
 
-} // namespace Clavis::Sysmon
+} // namespace Apollo::Sysmon

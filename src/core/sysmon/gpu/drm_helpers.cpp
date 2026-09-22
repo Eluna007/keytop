@@ -6,7 +6,7 @@
 
 #include <algorithm>
 
-namespace Clavis::Sysmon {
+namespace Apollo::Sysmon {
 
 namespace {
 
@@ -171,4 +171,4 @@ DrmFdinfoSnapshot advanceDrmFdinfoBaseline(const DrmFdinfoSnapshot &previous,
     return result;
 }
 
-} // namespace Clavis::Sysmon
+} // namespace Apollo::Sysmon

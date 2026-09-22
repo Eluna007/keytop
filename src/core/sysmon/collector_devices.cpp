@@ -12,7 +12,7 @@
 #include <cmath>
 #include <limits>
 
-namespace Clavis::Sysmon {
+namespace Apollo::Sysmon {
 
 namespace {
 
@@ -466,4 +466,4 @@ BatteryInfo LinuxCollector::collectBattery(QVector<Error> *errors)
     return result;
 }
 
-} // namespace Clavis::Sysmon
+} // namespace Apollo::Sysmon

@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace Clavis::Sysmon {
+namespace Apollo::Sysmon {
 
 namespace {
 
@@ -213,4 +213,4 @@ Snapshot Sampler::sample(const ModuleSet &modules, ProcessMemorySource processMe
     return snapshot;
 }
 
-} // namespace Clavis::Sysmon
+} // namespace Apollo::Sysmon

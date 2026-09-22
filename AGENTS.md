@@ -5,7 +5,7 @@
 keytop is an independent repository. It owns Linux metrics sampling and parsing, the
 interactive TUI, configuration defaults, and the public JSON/JSONL machine protocol:
 `schemaVersion`, module names, field types and units, stream behavior, and exit semantics.
-Clavis consumes this protocol; keytop tests must not depend on `../clavis` or `../key-cli`.
+Apollo consumes this protocol; keytop tests must not depend on `../apollo` or `../key-cli`.
 
 ## Build and workflow
 
