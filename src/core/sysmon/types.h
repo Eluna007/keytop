@@ -9,7 +9,7 @@
 
 #include <optional>
 
-namespace Clavis::Sysmon {
+namespace Apollo::Sysmon {
 
 inline constexpr int SchemaVersion = 1;
 
@@ -236,4 +236,4 @@ inline QStringList orderedModuleNames()
     };
 }
 
-} // namespace Clavis::Sysmon
+} // namespace Apollo::Sysmon

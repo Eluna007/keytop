@@ -1,18 +1,18 @@
 # keytop
 
-Kernel and system information snapshots for [Clavis Shell](https://github.com/StatIndet/quickshell),
+Kernel and system information snapshots for [Apollo Shell](https://github.com/Eluna007/ApolloDot),
 with a JSON/JSONL interface and an optional terminal monitor.
 
 > [!NOTE]
 > Despite the “top” in its name, keytop's primary purpose is to provide kernel and
-> system information snapshots to the Quickshell-based Clavis Shell. Maintenance
+> system information snapshots to the Quickshell-based Apollo Shell. Maintenance
 > prioritizes collection accuracy, runtime overhead and the machine-readable protocol.
 > The TUI is a secondary interface, not the project's primary maintenance target.
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/StatIndet/picture/main/keytop1.png" alt="keytop1" width="49%" />
-  <img src="https://raw.githubusercontent.com/StatIndet/picture/main/keytop2.png" alt="keytop2" width="49%" />
-</p>
+Forked from [StatIndet/keytop](https://github.com/StatIndet/keytop) and rebranded for
+Apollo. Upstream fixes are reviewed and merged by hand.
+
+<!-- Screenshots: add your own here. -->
 
 ## Features
 
@@ -33,11 +33,11 @@ with a JSON/JSONL interface and an optional terminal monitor.
 
 | Project | Role |
 | --- | --- |
-| **[Clavis Shell](https://github.com/StatIndet/quickshell)** | Quickshell UI and desktop shell |
-| **[key-cli](https://github.com/StatIndet/key-cli)** | `key` command and discrete system tasks |
-| **[keytop](https://github.com/StatIndet/keytop)** | Kernel/system snapshots and machine-readable metrics; secondary TUI |
+| **[Apollo Shell](https://github.com/Eluna007/ApolloDot)** | Quickshell UI and desktop shell |
+| **[key-cli](https://github.com/Eluna007/key-cli)** | `key` command and discrete system tasks |
+| **[keytop](https://github.com/Eluna007/keytop)** | Kernel/system snapshots and machine-readable metrics; secondary TUI |
 
-`keytop` runs independently of Clavis and key-cli. Clavis consumes
+`keytop` runs independently of Apollo and key-cli. Apollo consumes
 `keytop value stream --format jsonl`; other consumers can use the same public protocol.
 
 GPU telemetry uses optional in-process providers: NVIDIA NVML is loaded dynamically,

@@ -7,7 +7,7 @@
 #include <optional>
 #include <vector>
 
-namespace Clavis::TopTuiDetail {
+namespace Apollo::TopTuiDetail {
 
 QString distroLogoId(const QString &id, const QStringList &idLike = {});
 QStringList distroMark(const QString &id, const QStringList &idLike = {});
@@ -68,4 +68,4 @@ int resolveProcessSelection(bool explicitlySelected,
                             int previousIndex,
                             const std::vector<long long> &orderedPids);
 
-} // namespace Clavis::TopTuiDetail
+} // namespace Apollo::TopTuiDetail

@@ -6,7 +6,7 @@
 #include <QHash>
 #include <QString>
 
-namespace Clavis::Sysmon {
+namespace Apollo::Sysmon {
 
 struct DrmEngineCounter {
     quint64 busy = 0;
@@ -33,4 +33,4 @@ QHash<QString, OptionalNumber> calculateDrmFdinfoUtilization(const DrmFdinfoSnap
 DrmFdinfoSnapshot advanceDrmFdinfoBaseline(const DrmFdinfoSnapshot &previous,
                                            const DrmFdinfoSnapshot &current);
 
-} // namespace Clavis::Sysmon
+} // namespace Apollo::Sysmon

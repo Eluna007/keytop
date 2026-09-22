@@ -1,7 +1,7 @@
 # keytop machine protocol
 
 This is the stable machine-facing contract owned by keytop. `keytop value` keeps the
-schema-versioned JSON interface formerly exposed by `key sysmon`; Clavis consumes the
+schema-versioned JSON interface formerly exposed by `key sysmon`; Apollo consumes the
 JSONL stream directly. Protocol changes require updating this document and the integration
 contract tests in `tests/keytop_integration_test.cpp`.
 

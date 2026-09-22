@@ -10,7 +10,7 @@
 #include <QJsonObject>
 #include <QTest>
 
-using namespace Clavis::Sysmon;
+using namespace Apollo::Sysmon;
 
 class SysmonCoreTest : public QObject {
     Q_OBJECT

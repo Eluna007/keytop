@@ -10,7 +10,7 @@
 
 #include <optional>
 
-namespace Clavis::Sysmon {
+namespace Apollo::Sysmon {
 
 struct CpuTimes {
     quint64 user = 0;
@@ -96,4 +96,4 @@ OptionalNumber processCpuPercent(quint64 previousTicks,
 CpuInfo calculateCpuInfo(const CpuCounters &previous, const CpuCounters &current);
 MemoryInfo calculateMemoryInfo(const MemoryCounters &counters);
 
-} // namespace Clavis::Sysmon
+} // namespace Apollo::Sysmon

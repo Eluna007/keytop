@@ -3,7 +3,7 @@
 #include <QString>
 #include <QStringList>
 
-namespace Clavis::Sysmon {
+namespace Apollo::Sysmon {
 
 qint64 nextCadenceDeadlineMs(qint64 previousDeadlineMs, qint64 nowMs, qint64 intervalMs);
 QStringList normalizedCpuPolicyNames(const QStringList &entries);
@@ -13,4 +13,4 @@ bool topologyCacheNeedsRefresh(const QByteArray &cachedFingerprint,
                                const QByteArray &currentFingerprint,
                                bool cachedPathsPresent);
 
-} // namespace Clavis::Sysmon
+} // namespace Apollo::Sysmon

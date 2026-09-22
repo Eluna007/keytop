@@ -6,7 +6,7 @@
 #include <array>
 #include <dlfcn.h>
 
-namespace Clavis::Sysmon {
+namespace Apollo::Sysmon {
 
 namespace {
 
@@ -239,4 +239,4 @@ std::unique_ptr<GpuProvider> createNvidiaNvmlProvider()
     return std::make_unique<NvidiaNvmlProvider>();
 }
 
-} // namespace Clavis::Sysmon
+} // namespace Apollo::Sysmon

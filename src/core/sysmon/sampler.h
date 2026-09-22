@@ -7,7 +7,7 @@
 
 #include <optional>
 
-namespace Clavis::Sysmon {
+namespace Apollo::Sysmon {
 
 class Sampler {
 public:
@@ -41,4 +41,4 @@ private:
     qint64 m_previousProcessNs = 0;
 };
 
-} // namespace Clavis::Sysmon
+} // namespace Apollo::Sysmon

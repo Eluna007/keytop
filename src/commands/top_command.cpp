@@ -90,7 +90,7 @@ CommandResult TopCommand::run(const QStringList &arguments) const
     }
 
     try {
-        Clavis::Sysmon::Sampler sampler;
+        Apollo::Sysmon::Sampler sampler;
         TopTui tui(sampler, options);
         const int exitCode = tui.run();
         if (exitCode != SuccessExit) {
@@ -128,7 +128,7 @@ CommandResult TopCommand::run(const QStringList &arguments) const
 QString TopCommand::helpText()
 {
     return QStringLiteral(
-        "Clavis interactive system monitor\n"
+        "Apollo interactive system monitor\n"
         "\n"
         "Usage:\n"
         "  keytop [--interval MILLISECONDS] [--ascii]\n"

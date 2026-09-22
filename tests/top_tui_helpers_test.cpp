@@ -2,7 +2,7 @@
 
 #include <QtTest>
 
-using namespace Clavis::TopTuiDetail;
+using namespace Apollo::TopTuiDetail;
 
 class TopTuiHelpersTest : public QObject {
     Q_OBJECT

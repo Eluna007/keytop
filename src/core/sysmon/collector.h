@@ -11,7 +11,7 @@
 #include <optional>
 #include <memory>
 
-namespace Clavis::Sysmon {
+namespace Apollo::Sysmon {
 
 class GpuManager;
 
@@ -142,4 +142,4 @@ private:
     std::unique_ptr<GpuManager> m_gpuManager;
 };
 
-} // namespace Clavis::Sysmon
+} // namespace Apollo::Sysmon

@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <limits>
 
-namespace Clavis::Sysmon {
+namespace Apollo::Sysmon {
 
 qint64 nextCadenceDeadlineMs(qint64 previousDeadlineMs, qint64 nowMs, qint64 intervalMs)
 {
@@ -57,4 +57,4 @@ bool topologyCacheNeedsRefresh(const QByteArray &cachedFingerprint,
            || cachedFingerprint != currentFingerprint;
 }
 
-} // namespace Clavis::Sysmon
+} // namespace Apollo::Sysmon
